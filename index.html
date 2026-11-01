@@ -748,15 +748,15 @@ async function matchNow() {
   $("#matches").innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="label" style="margin:0">Top matches</div><button class="btn ghost" id="seeMap" style="padding:4px 10px;font-size:12.5px">See yourself on the map →</button></div>` +
     list.map((m, n) => {
       const ev = [...m.cs].sort((a, b) => best[b.i] - best[a.i]).slice(0, 2);
-      const gaps = m.cs.filter(c => (c.s === "requirements" || c.s === "preferred") && best[c.i] < .45).sort((a, b) => best[a.i] - best[b.i]).slice(0, 2);
+      const gaps = m.cs.filter(c => (c.s === "requirements" || c.s === "preferred")).sort((a, b) => best[a.i] - best[b.i]).slice(0, 2).filter(c => best[c.i] < .6);
       const sal = m.job.salary_min ? ` · $${Math.round(m.job.salary_min / 1000)}k–${Math.round(m.job.salary_max / 1000)}k` : "";
       return `<div class="match${n === 0 ? " open" : ""}"><div class="match-h"><div class="n" style="font-weight:800;color:var(--series-deep)">${n + 1}</div>
         <div><div style="font-weight:700;font-size:14px">${esc(m.job.title)}</div><div class="note"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${FAM_COLOR[m.job.family]};margin-right:5px"></span>${esc(m.job.family)} · ${esc(m.job.level)} · ${esc(m.job.location || "")}${m.job.remote ? " · remote" : ""}${sal}</div></div>
         <div><div class="bar" style="justify-content:flex-end"><div class="b" style="width:${20 + 80 * (m.score - lo) / Math.max(hi - lo, 1e-6)}px"></div><span class="v">${m.score.toFixed(3)}</span></div></div></div>
         <div class="body"><div class="label">Evidence: your chunk ↔ their chunk</div>
         ${ev.map(c => `<div class="pair"><div class="you">${esc(rc[arg[c.i]].text.slice(0, 150))}…</div><div class="s">${best[c.i].toFixed(2)}</div><div class="job"><b>${c.s}</b>: ${esc(c.text.slice(0, 170))}…</div></div>`).join("")}
-        <div class="label" style="margin-top:10px">Gaps: their requirements with no close chunk of yours</div>
-        <ul class="gaps">${gaps.length ? gaps.map(c => `<li>${esc(c.text.slice(0, 180))}… <span class="note">(best ${best[c.i].toFixed(2)})</span></li>`).join("") : "<li>None below 0.45: your resume touches every requirement chunk.</li>"}</ul>
+        <div class="label" style="margin-top:10px">Weakest links: their requirements your resume covers least</div>
+        <ul class="gaps">${gaps.length ? gaps.map(c => `<li>${esc(c.text.slice(0, 180))}… <span class="note">(closest: ${best[c.i].toFixed(2)})</span></li>`).join("") : "<li>Every requirement scores 0.60 or higher against some part of your resume.</li>"}</ul>
         <a class="note" href="${esc(m.job.url)}" target="_blank" rel="noopener">Original posting ↗</a> <span class="note">(${esc(m.job.source)}; may be closed)</span></div></div>`;
     }).join("");
   $$("#matches .match-h").forEach(h => h.onclick = () => h.parentElement.classList.toggle("open"));
