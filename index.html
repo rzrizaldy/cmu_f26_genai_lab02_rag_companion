@@ -49,6 +49,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
 header.top{padding:22px 0 10px}
 .byline{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
+.byline .theme-btn{margin-left:auto;flex:none}
 .byline b{color:var(--ink)}
 .hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;margin-top:14px}
 h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spacing:-.01em;margin:0 0 8px;font-stretch:92%}
@@ -220,7 +221,8 @@ details summary{cursor:pointer;font-weight:600;font-size:13.5px}
 .drop .fmt{display:block;margin-top:10px;font-size:12px;color:var(--muted)}
 .filechip{display:none;margin-top:10px;border:1px solid var(--rule);border-radius:10px;padding:10px 12px;font-size:13px;align-items:center;gap:10px;background:var(--wash)}
 .filechip.show{display:flex}
-.filechip .meta{flex:1}
+.filechip .meta{flex:1;min-width:0;overflow-wrap:anywhere}
+.filechip .chip{flex:none}
 .filechip b{color:var(--ink)}
 .warn{border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--card));padding:8px 12px;border-radius:0 8px 8px 0;font-size:13px;color:var(--ink-2);margin-top:10px}
 .readprev{font-size:12.5px;white-space:pre-wrap;max-height:160px;overflow:auto;background:var(--wash);border-radius:8px;padding:10px;color:var(--ink-2);margin-top:8px}
@@ -255,13 +257,14 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="byline">
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8 12 13 3 8Z" fill="#e8892b"/><path d="M3 11.5 12 16.5 21 11.5" fill="none" stroke="#9e9ad0" stroke-width="1.8"/><path d="M3 15.5 12 20.5 21 15.5" fill="none" stroke="#6a6fc4" stroke-width="1.8"/></svg>
     <span><b>CMU Generative AI Lab · F26 · Lab 02</b> · prepared by Rizaldy Utomo · 6 Nov 2026</span>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark mode">◐ Light / dark</button>
   </div>
   <div class="hero">
     <div>
       <h1>How does a machine read your resume?</h1>
       <p class="lede">This page shows how a RAG system works, one layer at a time. First we cut documents into pieces, then turn each piece into numbers, then find the pieces closest to a question and let an LLM answer from them. After that we check if it worked, and at the end you can try it with your own resume. Click a layer on the right, or use the buttons below.</p>
       <div class="stepnow" id="stepNow"><div class="k">Layer 1 of 5</div><div class="t">Chunk</div></div>
-      <div class="stepnav"><button class="chip" id="prevStep">← Previous layer</button><button class="chip" id="nextStep">Next layer →</button><button class="theme-btn" id="themeBtn" type="button">◐ Light / dark</button></div>
+      <div class="stepnav"><button class="chip" id="prevStep">← Previous layer</button><button class="chip" id="nextStep">Next layer →</button></div>
       <div class="modelcard" id="modelCard">
         <div><b>EmbeddingGemma</b> turns text into numbers <b>inside your browser</b>. The first time, it downloads about <b>200 MB</b>. After that your browser keeps it, so it loads fast. <span id="modelStatus">Not loaded yet.</span></div>
         <button class="btn" id="loadModel">Load model</button>
@@ -753,9 +756,15 @@ class MapView {
       const placed = [];   // keep labels from sitting on top of each other
       youPts.forEach(p => {
         const x = this.px(p.x), y = this.py(p.y); let ly = y;
-        if (this.o.mono) { for (let t = 0; t < 6 && placed.some(([px, py]) => Math.abs(px - x) < 170 && Math.abs(py - ly) < 13); t++) ly += 13; placed.push([x, ly]); }
+        let free = true;
+        if (this.o.mono) {
+          const hit = yy => placed.some(([px, py]) => Math.abs(px - x) < 170 && Math.abs(py - yy) < 13);
+          const tries = [0, 13, -13, 26, -26];
+          const t = tries.find(d => !hit(y + d)); free = t !== undefined; ly = y + (t ?? 0);
+          if (free) placed.push([x, ly]);
+        }
         glow(x, y, this.o.mono ? 6 : 5, "");
-        if (this.o.mono) { ctx.font = "700 11px Archivo, system-ui"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = css("--paper"); ctx.strokeText(p.label, x + 10, ly + 4); ctx.fillStyle = css("--ink"); ctx.fillText(p.label, x + 10, ly + 4); }
+        if (this.o.mono && free) { ctx.font = "700 11px Archivo, system-ui"; ctx.textAlign = "left"; ctx.lineWidth = 3; ctx.strokeStyle = css("--paper"); ctx.strokeText(p.label, x + 10, ly + 4); ctx.fillStyle = css("--ink"); ctx.fillText(p.label, x + 10, ly + 4); }
       });
     }
     if (this.lantern) glow(this.px(this.lantern.x), this.py(this.lantern.y), 8, this.lantern.label);
@@ -889,7 +898,15 @@ async function readFile(f) {
       const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise; pages = pdf.numPages;
       for (let p = 1; p <= pdf.numPages; p++) {
         const items = (await (await pdf.getPage(p)).getTextContent()).items; let lastY = null;
-        for (const it of items) { const y = it.transform[5]; if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n"; text += it.str; if (it.hasEOL) text += "\n"; lastY = y; }
+        let lastEnd = null;
+        for (const it of items) {
+          const y = it.transform[5], x = it.transform[4];
+          if (lastY !== null && Math.abs(y - lastY) > 2) { if (!text.endsWith("\n")) text += "\n"; lastEnd = null; }
+          // same line: add a space when there is a visible gap (small-caps letters touch, so they stay joined)
+          else if (lastEnd !== null && x - lastEnd > 1.5 && !/\s$/.test(text) && !/^\s/.test(it.str)) text += " ";
+          text += it.str; if (it.hasEOL) { text += "\n"; lastEnd = null; } else lastEnd = x + (it.width || 0);
+          lastY = y;
+        }
         text += "\n";
       }
     } else if (/\.docx$/i.test(f.name)) {
@@ -912,13 +929,19 @@ function resetResume() {
   $("#matches").innerHTML = '<p class="note">Your top matches will show here.</p>';
   $("#showYou").disabled = true; miniMap.draw(); bigMap.draw();
 }
+const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g, PHONE = /(\+?\d[\d\s().-]{7,}\d)/g;
+function hideContacts(t) {
+  let n = 0; const out = t.replace(EMAIL, () => (n++, "[email hidden]")).replace(PHONE, m => (m.replace(/\D/g, "").length >= 9 ? (n++, "[phone hidden]") : m));
+  return { text: out, hidden: n };
+}
 function useResume(t, info) {
+  const hc = hideContacts(t); t = hc.text;
   lastResume = t;
   $("#w1").classList.add("done"); $("#w2").classList.remove("idle"); $("#w3").classList.remove("idle");
   let rc = sectionChunks(t).filter(c => c.text.length >= 80); const found = rc.length >= 2; if (!found) rc = recursiveChunks(t, 600);
   const warn = t.length < 300 ? `<div class="warn"><b>We could read only ${t.length} characters.</b> If your PDF is a scanned image, it has no text inside for us to read. Try exporting it again from Word or Google Docs, or paste the text.</div>` :
     !found ? `<div class="warn">We could not find section headers like "Experience" or "Skills" on their own line, so we cut the text by size instead. The matches still work.</div>` : "";
-  $("#readOut").innerHTML = `<div style="font-size:13px;color:var(--ink-2)"><b style="color:var(--ink)">${esc(info.name)}</b>: ${t.length.toLocaleString()} characters, cut into <b style="color:var(--ink)">${rc.length} chunks</b>.</div>
+  $("#readOut").innerHTML = `<div style="font-size:13px;color:var(--ink-2)"><b style="color:var(--ink)">${esc(info.name)}</b>: ${t.length.toLocaleString()} characters, cut into <b style="color:var(--ink)">${rc.length} chunks</b>.${hc.hidden ? ` We hid your email and phone number (${hc.hidden} found) before reading. They say nothing about job fit, and this keeps them off a shared screen.` : ""}</div>
     <div class="secchips">${rc.map((c, i) => `<span class="secchip" style="background:var(--sec-${c.section})">#${i + 1} ${esc(SEC_NAME[c.section] || c.section)}</span>`).join("")}</div>${warn}
     <details style="margin-top:8px"><summary>Show the text we read</summary><div class="readprev">${esc(t.slice(0, 1500))}${t.length > 1500 ? "\n…" : ""}</div></details>`;
   matchNow(t, rc);
