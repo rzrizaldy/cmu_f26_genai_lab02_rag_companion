@@ -62,6 +62,10 @@ h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spac
   background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 22px),repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 1px,transparent 1px 44px);
   padding:10px 10px 6px;min-height:360px}
 .stackbox svg{display:block;width:100%;height:auto}
+.stackbox svg.hit{position:absolute;left:10px;right:10px;top:10px;width:calc(100% - 20px)}
+.stackbox .hit rect{fill:transparent;cursor:pointer;outline:none}
+.stackbox .hit rect:hover{fill:rgba(255,255,255,.05)}
+.stackbox .hit rect:focus-visible{stroke:#ffd36b;stroke-width:2}
 .stackbox .cap{position:absolute;left:14px;bottom:10px;font-size:11.5px;color:#aab0d6;letter-spacing:.04em}
 .layer{cursor:pointer;outline:none;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .layer .top{fill:#e8e6f6;fill-opacity:.82;stroke:#ffffff;stroke-opacity:.55;stroke-width:1}
@@ -262,18 +266,19 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="hero">
     <div>
       <h1>How does a machine read your resume?</h1>
-      <p class="lede">This page shows how a RAG system works, one layer at a time. First we cut documents into pieces, then turn each piece into numbers, then find the pieces closest to a question and let an LLM answer from them. After that we check if it worked, and at the end you can try it with your own resume. Click a layer on the right, or use the buttons below.</p>
-      <div class="stepnow" id="stepNow"><div class="k">Layer 1 of 5</div><div class="t">Chunk</div></div>
-      <div class="stepnav"><button class="chip" id="prevStep">← Previous layer</button><button class="chip" id="nextStep">Next layer →</button></div>
+      <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning. A question is compared with every piece, and only the closest ones get through the neck to the LLM. Then we check if the answer was right, and at the end your own resume goes through its own small funnel. Click a level of the funnel, or use the buttons below.</p>
+      <div class="stepnow" id="stepNow"><div class="k">Step 1 of 5</div><div class="t">Chunk</div></div>
+      <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button></div>
       <div class="modelcard" id="modelCard">
         <div><b>EmbeddingGemma</b> turns text into numbers <b>inside your browser</b>. The first time, it downloads about <b>200 MB</b>. After that your browser keeps it, so it loads fast. <span id="modelStatus">Not loaded yet.</span></div>
         <button class="btn" id="loadModel">Load model</button>
         <div class="progress"><span id="modelBar"></span></div>
       </div>
     </div>
-    <div class="stackbox" role="tablist" aria-label="RAG pipeline layers">
-      <svg viewBox="-172 -24 470 500" id="stack"></svg>
-      <div class="cap">THE RAG STACK · BOTTOM → TOP</div>
+    <div class="stackbox" role="tablist" aria-label="RAG funnel: click a level">
+      <svg id="funnel" aria-hidden="true"></svg>
+      <svg id="funnelHit" class="hit"></svg>
+      <div class="cap">THE RAG FUNNEL · TOP → BOTTOM</div>
     </div>
   </div>
 </header>
@@ -453,6 +458,7 @@ footer p{margin:4px 0;max-width:110ch}
 </footer>
 
 <script src="rag_bundle.js"></script>
+<script src="funnel.js"></script>
 <script type="module">
 import { AutoTokenizer, AutoModel, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6";
 
@@ -601,42 +607,23 @@ async function semanticChunks(t, pct = 80, maxSize = 900, onStep) {
   return out.map(([s, e]) => ({ text: t.slice(s, e).trim(), start: s, end: e, section: "body" }));
 }
 
-/* ---------------------------------------------------------------- the stack (step nav) */
-const LAYERS = [
-  { n: 1, name: "Chunk", side: "4 ways to cut" },
-  { n: 2, name: "Embed", side: "EmbeddingGemma" },
-  { n: 3, name: "Retrieve + answer", side: "top-k → Gemma 4" },
-  { n: 4, name: "Evaluate", side: "Hit@5 · MRR" },
-  { n: 5, name: "Your resume", side: "in your browser" },
-];
-const SVGNS = "http://www.w3.org/2000/svg", R = 150, T = 30, GAP = 58;
-(function buildStack() {
-  const svg = $("#stack");
-  const face = (cls, d) => { const p = document.createElementNS(SVGNS, "path"); p.setAttribute("class", cls); p.setAttribute("d", d); return p; };
-  const text = (cls, str, tf) => { const t = document.createElementNS(SVGNS, "text"); if (cls) t.setAttribute("class", cls); t.setAttribute("transform", tf); t.textContent = str; return t; };
-  LAYERS.forEach((L, i) => {
-    const g = document.createElementNS(SVGNS, "g");
-    g.setAttribute("class", "layer" + (i === 0 ? " base" : "")); g.dataset.step = L.n; g.dataset.y = (LAYERS.length - 1 - i) * GAP;
-    g.setAttribute("role", "tab"); g.setAttribute("tabindex", "0"); g.setAttribute("aria-label", `Layer ${L.n}: ${L.name}`);
-    g.append(face("top", `M0 0 L${R} ${R / 2} L0 ${R} L${-R} ${R / 2} Z`),
-             face("left", `M${-R} ${R / 2} L0 ${R} L0 ${R + T} L${-R} ${R / 2 + T} Z`),
-             face("right", `M0 ${R} L${R} ${R / 2} L${R} ${R / 2 + T} L0 ${R + T} Z`));
-    g.append(text("", `${L.n} · ${L.name}`, `translate(${-R + 12} ${R / 2 + 21}) skewY(26.565)`),
-             text("r", L.side, `translate(${14} ${R + 21}) skewY(-26.565)`));
-    g.onclick = () => go(L.n); g.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(L.n); } };
-    svg.append(g);
-  });
-})();
+/* ---------------------------------------------------------------- the funnel (step nav) */
+const LAYERS = RAGFunnel.LEVELS;
+const FN = $("#funnel"), FH = $("#funnelHit");
+FN.setAttribute("viewBox", RAGFunnel.VIEW); FH.setAttribute("viewBox", RAGFunnel.VIEW);
+FH.innerHTML = RAGFunnel.HIT.map(h => `<rect x="${h.x}" y="${h.y}" width="${h.w}" height="${h.h}" rx="10" data-step="${h.n}" role="tab" tabindex="0" aria-label="Step ${h.n}: ${LAYERS[h.n - 1].name}"></rect>`).join("");
+FH.querySelectorAll("rect").forEach(r => { r.onclick = () => go(+r.dataset.step); r.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(+r.dataset.step); } }; });
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let funnelVisible = true, funnelLast = 0;
+new IntersectionObserver(es => { funnelVisible = es[0].isIntersecting; }).observe(FN);
+function drawFunnel(ms) {
+  if (ms - funnelLast > 33 && funnelVisible && !document.hidden) { FN.innerHTML = RAGFunnel.svg(reduceMotion ? 2.2 : ms / 1000, current); funnelLast = ms; }
+  if (!reduceMotion) requestAnimationFrame(drawFunnel);
+}
 function placeStack(active) {
-  const svg = $("#stack"), layers = [...svg.querySelectorAll(".layer")].sort((a, b) => a.dataset.step - b.dataset.step);
-  layers.forEach(g => svg.append(g));
-  svg.append(layers[active - 1]);                           // the active layer is pulled to the front
-  layers.forEach(g => {
-    const n = +g.dataset.step, y = +g.dataset.y, on = n === active;
-    g.style.transform = `translate(${on ? 118 : 0}px, ${y + (on ? 54 : 0)}px)`;
-    g.classList.toggle("on", on); g.classList.toggle("done", done.has(n)); g.setAttribute("aria-selected", on);
-  });
-  $("#stepNow").innerHTML = `<div class="k">Layer ${active} of 5</div><div class="t">${esc(LAYERS[active - 1].name)}</div>`;
+  FH.querySelectorAll("rect").forEach(r => r.setAttribute("aria-selected", +r.dataset.step === active));
+  if (reduceMotion) FN.innerHTML = RAGFunnel.svg(2.2, active);
+  $("#stepNow").innerHTML = `<div class="k">Step ${active} of 5</div><div class="t">${esc(LAYERS[active - 1].name)}</div>`;
 }
 let current = 1;
 const done = new Set([1]);
@@ -989,6 +976,7 @@ async function matchNow(t, rc) {
 /* ---------------------------------------------------------------- boot */
 renderChunks();
 placeStack(1);
+requestAnimationFrame(drawFunnel);
 const fromHash = () => { const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
 fromHash(); addEventListener("hashchange", fromHash);
 if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).then(k => { if (k.some(r => r.url.includes("embeddinggemma"))) getModel().catch(() => {}); }).catch(() => {});
