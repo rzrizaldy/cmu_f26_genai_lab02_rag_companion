@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Companion · Lab 02</title>
+<meta name="description" content="Step through chunking, embedding, retrieval and evaluation, then see which job postings your resume matches. Everything runs in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --paper:#ffffff; --wash:#f4f6f8; --ink:#1e2a36; --ink-2:#4a5563; --muted:#7b8594; --rule:#e3e6ea; --axis:#c5cbd3;
+  --series:#2a78d6; --series-deep:#184f95; --lantern:#e09a00; --lantern-glow:#ffd36b; --nodata:#eef0f3;
+  --good:#1b7f4e; --bad:#b3261e; --warn:#e3a21a;
+  --ramp-1:#cde2fb; --ramp-2:#9ec5f4; --ramp-3:#6da7ec; --ramp-4:#3987e5; --ramp-5:#256abf; --ramp-6:#184f95; --ramp-7:#0d366b;
+  --sec-about:#9ec5f4; --sec-responsibilities:#ffd36b; --sec-requirements:#8fd3a8; --sec-preferred:#f4b3a8; --sec-benefits:#d7c8f0; --sec-other:#e3e6ea; --sec-body:#cde2fb;
+  --band-1:#cde2fb; --band-2:#ffe9b3; --band-3:#d3f0dc; --band-4:#f6d6d0; --band-5:#e5dcf5; --band-6:#eef0f3;
+  --card:#ffffff; --shadow:0 1px 2px rgba(30,42,54,.06),0 4px 16px rgba(30,42,54,.05);
+  --font:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --paper:#0f1720; --wash:#16202b; --ink:#e6ebf1; --ink-2:#b4beca; --muted:#8792a0; --rule:#26323f; --axis:#3a4756;
+    --series:#5aa2f0; --series-deep:#9ec5f4; --lantern:#f2b233; --lantern-glow:#ffd36b; --nodata:#1d2834;
+    --good:#4cc38a; --bad:#f07167;
+    --sec-about:#1f4f86; --sec-responsibilities:#6b5212; --sec-requirements:#1f5f3c; --sec-preferred:#6e3a31; --sec-benefits:#4a3d6b; --sec-other:#2b3744; --sec-body:#1d3a5c;
+    --band-1:#1d3a5c; --band-2:#5c4a14; --band-3:#1f4d33; --band-4:#5c302a; --band-5:#3e3360; --band-6:#26323f;
+    --card:#131c26; --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --paper:#0f1720; --wash:#16202b; --ink:#e6ebf1; --ink-2:#b4beca; --muted:#8792a0; --rule:#26323f; --axis:#3a4756;
+  --series:#5aa2f0; --series-deep:#9ec5f4; --lantern:#f2b233; --lantern-glow:#ffd36b; --nodata:#1d2834;
+  --good:#4cc38a; --bad:#f07167;
+  --sec-about:#1f4f86; --sec-responsibilities:#6b5212; --sec-requirements:#1f5f3c; --sec-preferred:#6e3a31; --sec-benefits:#4a3d6b; --sec-other:#2b3744; --sec-body:#1d3a5c;
+  --band-1:#1d3a5c; --band-2:#5c4a14; --band-3:#1f4d33; --band-4:#5c302a; --band-5:#3e3360; --band-6:#26323f;
+  --card:#131c26; --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5}
+a{color:var(--series)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+header.top{padding:22px 0 10px}
+.byline{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
+.byline b{color:var(--ink)}
+.hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;margin-top:14px}
+h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spacing:-.01em;margin:0 0 8px;font-stretch:92%}
+.lede{color:var(--ink-2);max-width:62ch;margin:0}
+.theme-btn{border:1px solid var(--rule);background:var(--card);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:13px;color:var(--ink-2)}
+
+/* pipeline layer stack */
+.hero{grid-template-columns:minmax(0,1fr) 420px;align-items:stretch}
+.stackbox{position:relative;border-radius:16px;overflow:hidden;background:#1c2150;
+  background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 22px),repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 1px,transparent 1px 44px);
+  padding:10px 10px 6px;min-height:360px}
+.stackbox svg{display:block;width:100%;height:auto}
+.stackbox .cap{position:absolute;left:14px;bottom:10px;font-size:11.5px;color:#aab0d6;letter-spacing:.04em}
+.layer{cursor:pointer;outline:none;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.layer .top{fill:#e8e6f6;fill-opacity:.82;stroke:#ffffff;stroke-opacity:.55;stroke-width:1}
+.layer .left{fill:#c9c6e6;fill-opacity:.78;stroke:#ffffff;stroke-opacity:.35;stroke-width:1}
+.layer .right{fill:#b7b3dc;fill-opacity:.78;stroke:#ffffff;stroke-opacity:.35;stroke-width:1}
+.layer.base .top{fill:#6a6fc4;fill-opacity:.7}.layer.base .left{fill:#4c519e;fill-opacity:.85}.layer.base .right{fill:#3f4489;fill-opacity:.85}
+.layer text{font:600 12.5px var(--font);fill:#2b2f6b;letter-spacing:.01em;pointer-events:none}
+.layer text.r{font-weight:500;fill:#3d4183;font-size:11.5px}
+.layer.base text{fill:#e8e6f6}
+.layer.done:not(.on) .top{fill:#fff3d6}
+.layer.on .top{fill:#e8892b;fill-opacity:1;stroke:#ffb866}
+.layer.on .left{fill:#c46a17;fill-opacity:1}
+.layer.on .right{fill:#a95810;fill-opacity:1}
+.layer.on text{fill:#fff}
+.layer:hover:not(.on) .top{fill-opacity:1}
+.layer:focus-visible .top{stroke:#ffd36b;stroke-width:3;stroke-opacity:1}
+.stepnow{margin-top:18px;border-left:3px solid #e8892b;padding:4px 0 4px 12px}
+.stepnow .k{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stepnow .t{font-size:17px;font-weight:700}
+.stepnav{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+
+main{padding:10px 0 40px}
+.panel{display:none}
+.panel.on{display:block}
+.step-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:18px;margin-bottom:14px}
+.step-head h2{margin:0;font-size:22px;font-weight:800;font-stretch:95%}
+.step-head p{margin:0;color:var(--ink-2);max-width:72ch}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:22px}
+.side{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule);background:var(--paper);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer;color:var(--ink-2);transition:.15s}
+.chip:hover{border-color:var(--axis)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.row{display:flex;gap:10px;align-items:center}
+.slider{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin-top:10px;font-size:13px;color:var(--ink-2)}
+.slider input{grid-column:1/-1;width:100%;accent-color:var(--series)}
+.slider output{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-size:26px;font-weight:800;font-stretch:90%;line-height:1.1}
+.stat .s{font-size:11.5px;color:var(--muted)}
+.doc{font-size:13.5px;line-height:1.6;white-space:pre-wrap;max-height:560px;overflow:auto;border:1px solid var(--rule);border-radius:10px;padding:14px;background:var(--paper)}
+.doc .c{border-radius:3px;padding:1px 0}
+.doc sup{font-size:10px;font-weight:700;color:var(--series-deep);margin-right:2px}
+.doc .gap{color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted)}
+.callout{border-left:3px solid var(--lantern);background:color-mix(in srgb,var(--lantern-glow) 14%,var(--card));padding:10px 12px;border-radius:0 8px 8px 0;font-size:13.5px;color:var(--ink-2)}
+.callout b{color:var(--ink)}
+textarea,input[type=text],input[type=search],select{width:100%;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;background:var(--paper)}
+textarea{min-height:110px;resize:vertical;font-size:13px}
+.btn{border:0;background:var(--series);color:#fff;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--series);border:1px solid var(--rule)}
+.btn:disabled{opacity:.5;cursor:default}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;background:var(--card)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--axis)}
+.pill.ready i{background:var(--good)}
+.pill.loading i{background:var(--lantern);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* map */
+.mapbox{position:relative;border:1px solid var(--rule);border-radius:12px;background:var(--paper);overflow:hidden}
+#map{display:block;width:100%;height:560px;cursor:crosshair}
+.tip{position:absolute;pointer-events:none;max-width:330px;background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:var(--shadow);display:none;z-index:3}
+.tip b{display:block;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+.simbar{height:10px;border-radius:5px;background:var(--nodata);overflow:hidden;margin-top:6px}
+.simbar span{display:block;height:100%;background:var(--series)}
+
+/* results */
+.res{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--rule)}
+.res:first-child{border-top:0}
+.res .n{font-weight:800;color:var(--series-deep);font-size:15px}
+.res .t{font-weight:700;font-size:14px}
+.res .m{color:var(--muted);font-weight:400;font-size:12.5px}
+.bar{display:flex;align-items:center;gap:8px;margin:4px 0}
+.bar .b{height:6px;border-radius:3px;background:var(--series)}
+.bar .v{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.res .x{font-size:13px;color:var(--ink-2)}
+.prompt{font-family:var(--mono);font-size:12px;white-space:pre-wrap;background:var(--wash);border-radius:8px;padding:12px;max-height:320px;overflow:auto;color:var(--ink-2)}
+details summary{cursor:pointer;font-weight:600;font-size:13.5px}
+
+/* eval */
+.lb-row{display:grid;grid-template-columns:170px 1fr 1fr;gap:16px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.lb-row:first-child{border-top:0}
+.lb-name{font-weight:700;font-size:14px}
+.lb-name small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.range{position:relative;height:22px}
+.range .track{position:absolute;left:0;right:0;top:10px;height:2px;background:var(--rule)}
+.range .ci{position:absolute;top:6px;height:10px;border-radius:5px;background:var(--ramp-2)}
+.range .pt{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;background:var(--series-deep);transform:translateX(-50%);border:2px solid var(--paper)}
+.range .val{position:absolute;top:2px;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.qtable{width:100%;border-collapse:collapse;font-size:13px}
+.qtable th{font-size:11.5px;color:var(--muted);text-align:left;font-weight:700;padding:6px 6px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--card)}
+.qtable td{padding:6px;border-bottom:1px solid var(--rule);vertical-align:top}
+.qtable tr{cursor:pointer}
+.qtable tr:hover td{background:var(--wash)}
+.rk{display:inline-block;min-width:30px;text-align:center;border-radius:5px;font-family:var(--mono);font-size:12px;padding:1px 4px}
+.rk.r1{background:color-mix(in srgb,var(--good) 25%,transparent);color:var(--good);font-weight:700}
+.rk.r5{background:color-mix(in srgb,var(--series) 18%,transparent);color:var(--series-deep)}
+.rk.rx{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.diff{font-size:11px;color:var(--muted)}
+.scroll{max-height:460px;overflow:auto}
+
+/* resume */
+.drop{border:2px dashed var(--axis);border-radius:12px;padding:22px;text-align:center;color:var(--ink-2);cursor:pointer;transition:.15s;background:var(--paper)}
+.drop.over{border-color:var(--lantern);background:color-mix(in srgb,var(--lantern-glow) 14%,var(--paper))}
+.drop b{color:var(--ink)}
+.privacy{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-2)}
+.privacy svg{flex:none;margin-top:2px}
+.match{border-top:1px solid var(--rule);padding:12px 0}
+.match:first-child{border-top:0}
+.match-h{display:grid;grid-template-columns:34px 1fr 140px;gap:10px;align-items:center;cursor:pointer}
+.match-h .score{font-family:var(--mono);font-size:13px;text-align:right}
+.match .body{display:none;margin:10px 0 0 44px}
+.match.open .body{display:block}
+.pair{display:grid;grid-template-columns:1fr 54px 1fr;gap:8px;align-items:center;font-size:12.5px;margin:6px 0}
+.pair .you{background:color-mix(in srgb,var(--lantern-glow) 22%,var(--paper));border:1px solid color-mix(in srgb,var(--lantern) 40%,transparent);border-radius:8px;padding:6px 8px}
+.pair .job{background:var(--wash);border-radius:8px;padding:6px 8px}
+.pair .s{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.gaps li{font-size:12.5px;color:var(--ink-2);margin:4px 0}
+.honest{font-size:12.5px;color:var(--muted);border-top:1px solid var(--rule);padding-top:10px;margin-top:10px}
+
+footer{border-top:1px solid var(--rule);padding:18px 0 30px;font-size:12.5px;color:var(--muted)}
+footer p{margin:4px 0;max-width:110ch}
+
+@media (max-width:860px){
+  .wrap{padding:0 16px}
+  .hero{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stackbox{min-height:0}
+  #map{height:420px}
+  .lb-row{grid-template-columns:1fr;gap:6px}
+  .match-h{grid-template-columns:28px 1fr 90px}
+  .match .body{margin-left:0}
+  .pair{grid-template-columns:1fr;}
+  .pair .s{text-align:left}
+}
+</style>
+</head>
+<body>
+<header class="top wrap">
+  <div class="byline">
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6 Q12 12 22 6" fill="none" stroke="var(--axis)" stroke-width="1.5"/><circle cx="6" cy="9" r="2.6" fill="var(--lantern)"/><circle cx="12" cy="10.4" r="2.6" fill="var(--lantern-glow)"/><circle cx="18" cy="9" r="2.6" fill="var(--series)"/><rect x="5" y="15" width="14" height="2" rx="1" fill="var(--ink-2)"/><rect x="7" y="19" width="10" height="2" rx="1" fill="var(--axis)"/></svg>
+    <span><b>CMU Generative AI Lab · F26 · Lab 02</b> · prepared by Rizaldy Utomo · 6 Nov 2026</span>
+  </div>
+  <div class="hero">
+    <div>
+      <h1>How does a machine read your resume?</h1>
+      <p class="lede">Retrieval-augmented generation is a stack of five layers: cut documents into pieces, turn the pieces into numbers, find the nearest pieces and let an LLM answer from them, check that it worked, then put it to use. Click a layer to pull it out.</p>
+      <div class="stepnow" id="stepNow"><div class="k">Layer 1 of 5</div><div class="t">Chunk</div></div>
+      <div class="stepnav"><button class="chip" id="prevStep">← Down a layer</button><button class="chip" id="nextStep">Up a layer →</button><span class="pill" id="modelPill"><i></i><span>Embedding model not loaded</span></span><button class="theme-btn" id="themeBtn" type="button">◐ Theme</button></div>
+    </div>
+    <div class="stackbox" role="tablist" aria-label="RAG pipeline layers">
+      <svg viewBox="-172 -24 470 500" id="stack"></svg>
+      <div class="cap">THE RAG STACK · BOTTOM → TOP</div>
+    </div>
+  </div>
+
+</header>
+
+<main class="wrap">
+<!-- ============================== 1 CHUNK ============================== -->
+<section class="panel on" id="p1">
+  <div class="step-head"><h2>1 · Cut it up</h2><p>An embedding model can only read about a paragraph at a time, so documents get cut into chunks first. How you cut decides what can be found later. Try the same document with each strategy.</p></div>
+  <div class="grid">
+    <div class="side">
+      <div class="card">
+        <div class="label">Document</div>
+        <div class="chips" id="docChips"></div>
+        <textarea id="docPaste" placeholder="…or paste any text here" style="margin-top:10px;display:none"></textarea>
+      </div>
+      <div class="card">
+        <div class="label">Strategy</div>
+        <div class="chips" id="stratChips">
+          <button class="chip on" data-s="fixed">Fixed</button><button class="chip" data-s="recursive">Recursive</button><button class="chip" data-s="section">Section</button><button class="chip" data-s="semantic">Semantic</button>
+        </div>
+        <div id="stratHelp" class="note" style="margin-top:10px"></div>
+        <label class="slider" id="sizeCtl">Chunk size (characters)<output id="sizeOut">500</output><input type="range" id="size" min="150" max="1200" step="50" value="500"></label>
+        <label class="slider" id="overlapCtl">Overlap<output id="overlapOut">50</output><input type="range" id="overlap" min="0" max="200" step="10" value="50"></label>
+        <label class="slider" id="bpCtl" style="display:none">Break where the meaning jump is in the top<output id="bpOut">20%</output><input type="range" id="bp" min="50" max="95" step="5" value="80"></label>
+      </div>
+      <div class="callout"><b>Watch for:</b> chunks that end mid-sentence, and chunks that mix two topics (say, salary and requirements). Both make retrieval worse.</div>
+    </div>
+    <div>
+      <div class="stats">
+        <div class="stat"><div class="k">Chunks</div><div class="v" id="stChunks">–</div><div class="s">pieces of this document</div></div>
+        <div class="stat"><div class="k">Average size</div><div class="v" id="stAvg">–</div><div class="s">characters</div></div>
+        <div class="stat"><div class="k">Cut mid-sentence</div><div class="v" id="stCut">–</div><div class="s">chunks ending without . : ? !</div></div>
+        <div class="stat"><div class="k">Longest</div><div class="v" id="stMax">–</div><div class="s">MiniLM reads ~1,000 chars max</div></div>
+      </div>
+      <div class="doc" id="docView" aria-live="polite"></div>
+      <div class="legend" id="secLegend" style="margin-top:10px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 2 EMBED ============================== -->
+<section class="panel" id="p2">
+  <div class="step-head"><h2>2 · Turn pieces into numbers</h2><p>Each chunk becomes a list of 384 numbers. Chunks that mean similar things get similar numbers, so they land near each other. This map squashes 384 dimensions into 2 (t-SNE), so read neighbourhoods, not distances.</p></div>
+  <div class="grid">
+    <div class="side">
+      <div class="card">
+        <div class="label">Drop a phrase on the map</div>
+        <div class="row"><input type="search" id="mapQuery" placeholder="e.g. Tableau dashboards" value="Tableau dashboards"><button class="btn" id="mapGo">Go</button></div>
+        <p class="note" style="margin:8px 0 0">The amber dot sits among its 8 nearest chunks.</p>
+        <ol id="mapNear" class="note" style="padding-left:18px;margin:8px 0 0"></ol>
+      </div>
+      <div class="card">
+        <div class="label">Are these two close?</div>
+        <input type="text" id="simA" value="Python and pandas">
+        <input type="text" id="simB" value="data analysis in Python" style="margin-top:6px">
+        <button class="btn ghost" id="simGo" style="margin-top:8px">Compare</button>
+        <div id="simOut" style="margin-top:8px"></div>
+      </div>
+      <div class="card"><div class="label">Role families</div><div class="legend" id="famLegend"></div></div>
+    </div>
+    <div>
+      <div class="mapbox"><canvas id="map" aria-label="2D map of job posting chunks"></canvas><div class="tip" id="tip"></div></div>
+      <p class="note" id="mapNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 3 RETRIEVE ============================== -->
+<section class="panel" id="p3">
+  <div class="step-head"><h2>3 · Find the nearest pieces, then answer</h2><p>Your question becomes a vector too. We score every chunk with cosine similarity and keep the top <i>k</i>. Only those chunks go to the LLM, which is told to answer from them and cite [n].</p></div>
+  <div class="grid">
+    <div class="side">
+      <div class="card">
+        <div class="label">Question</div>
+        <textarea id="q" style="min-height:70px">Which entry-level roles ask for SQL and dashboarding?</textarea>
+        <label class="slider">Top k<output id="kOut">5</output><input type="range" id="k" min="1" max="15" value="5"></label>
+        <button class="btn" id="qGo" style="margin-top:10px;width:100%">Retrieve</button>
+      </div>
+      <div class="card">
+        <div class="label">Filter first (metadata)</div>
+        <label class="row" style="font-size:13.5px"><input type="checkbox" id="fRemote"> Remote allowed</label>
+        <select id="fLevel" style="margin-top:8px"><option value="">Any experience level</option></select>
+        <select id="fFam" style="margin-top:8px"><option value="">Any role family</option></select>
+        <p class="note" style="margin:8px 0 0">Filtering by metadata before ranking by meaning is what vector databases call filtered or hybrid search.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div id="results"><p class="note">Press Retrieve.</p></div></div>
+      <details class="card" style="margin-top:14px" open>
+        <summary>What the LLM would receive</summary>
+        <p class="note">This page never calls an LLM. In the notebook this exact prompt goes to Gemma through your AI Studio key.</p>
+        <div class="prompt" id="promptView"></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 4 EVALUATE ============================== -->
+<section class="panel" id="p4">
+  <div class="step-head"><h2>4 · Check that it worked</h2><p>48 test questions, each written from one specific posting. A strategy scores when that posting comes back. <b>Hit@5</b> = share found in the top 5. <b>MRR</b> = average of 1/rank (1.0 means always first). Bars are 95% bootstrap ranges: when they overlap, you can't call a winner.</p></div>
+  <div class="card" id="lb"></div>
+  <div class="grid" style="margin-top:18px;grid-template-columns:1fr 340px">
+    <div class="card"><div class="label">Every question, every strategy (rank of the right posting)</div><div class="scroll"><table class="qtable" id="qtable"></table></div></div>
+    <div class="side">
+      <div class="card" id="qDetail"><div class="label">Question detail</div><p class="note">Click a row.</p></div>
+      <div class="callout">This is the idea behind Google's <b>auto-rag-eval</b>: let an LLM write questions from your own documents, have critics filter them, then score retrieval automatically. Here a TA wrote the 48, and the notebook shows the LLM version live.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 5 YOUR RESUME ============================== -->
+<section class="panel" id="p5">
+  <div class="step-head"><h2>5 · Your resume against 424 real postings</h2><p>Your resume is cut into sections, embedded in this browser tab and compared with every posting chunk. A posting scores high when your chunks <i>cover</i> its requirements and responsibilities.</p></div>
+  <div class="grid">
+    <div class="side">
+      <div class="card">
+        <label class="drop" id="drop" for="file"><b>Drop a resume</b><br><span class="note">PDF, DOCX or TXT</span><input type="file" id="file" accept=".pdf,.docx,.txt,.md" hidden></label>
+        <div class="privacy" style="margin-top:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--good)" stroke-width="2.4"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Runs entirely in your browser. Nothing is uploaded or stored.</span></div>
+        <div class="label" style="margin-top:14px">…or try a persona</div>
+        <div class="chips" id="personaChips"></div>
+        <textarea id="resumeText" placeholder="…or paste resume text" style="margin-top:10px"></textarea>
+        <button class="btn" id="matchGo" style="margin-top:8px;width:100%">Match</button>
+      </div>
+      <div class="card">
+        <div class="label">Show only</div>
+        <select id="mFam"><option value="">All role families</option></select>
+        <select id="mLevel" style="margin-top:8px"><option value="">Any experience level</option></select>
+      </div>
+      <div class="card"><div class="label">How your resume was chunked</div><div id="resumeChunks" class="note">–</div></div>
+    </div>
+    <div>
+      <div class="card"><div id="matches"><p class="note">Pick a persona or drop your resume.</p></div>
+        <div class="honest"><b>Read this as a mirror, not a verdict.</b> The score is meaning-similarity between your words and a posting's words. It can't see formatting, references, or the person; postings carry their own biases; and real screening tools (and hiring law, like NYC Local Law 144 and the EU AI Act's high-risk rules for hiring) involve much more. Use the gaps to decide what to say more clearly. Don't use them to stuff keywords.</div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <p><b>Data.</b> 384 postings from <a href="https://www.kaggle.com/datasets/arshkon/linkedin-job-postings">LinkedIn Job Postings 2023–24</a> (Arsh Koneru &amp; Zoey Yu Zou, CC BY-SA 4.0, via the <a href="https://huggingface.co/datasets/xanderios/linkedin-job-postings">HF mirror</a>); 40 federal postings from March 2026 via <a href="https://huggingface.co/datasets/loyoladatamining/usajobs">loyoladatamining/usajobs</a> (US government work); personas are anonymized resumes from the Kaggle Resume Dataset. Postings were cleaned and re-sectioned for teaching. This curated subset is shared under CC BY-SA 4.0.</p>
+  <p><b>Models.</b> <span id="metaLine"></span> · Browser embeddings: Xenova/all-MiniLM-L6-v2 via Transformers.js. · <a href="https://github.com/GoogleCloudPlatform/generative-ai/tree/main/search/auto-rag-eval">auto-rag-eval</a> · <a href="https://ai.google.dev/gemini-api/docs/file-search">Gemini File Search</a></p>
+</footer>
+
+<script src="rag_bundle.js"></script>
+<script type="module">
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6";
+
+const B = window.RAG_BUNDLE;
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+if (!B) { document.querySelector("main").innerHTML = '<div class="card" style="margin-top:20px"><b>rag_bundle.js not found.</b> Run the "Export" cell in the notebook first, then reload this page.</div>'; throw new Error("no bundle"); }
+
+/* ---------------------------------------------------------------- theme */
+$("#themeBtn").onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("rag-theme", r.dataset.theme); } catch {}
+  drawMap();
+};
+try { const t = localStorage.getItem("rag-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+
+/* ---------------------------------------------------------------- data */
+const FAMILIES = ["Data & Analytics","Software & IT","Product & Project","Consulting & Strategy","Finance & Accounting","Marketing & Comms","Sales & BizDev","Healthcare","HR & People","Design & Creative","Operations & Supply Chain","Policy & Government"];
+const FAM_COLOR = {"Data & Analytics":"#2a78d6","Software & IT":"#0d366b","Product & Project":"#6da7ec","Consulting & Strategy":"#5b5fc7","Finance & Accounting":"#1b7f4e","Marketing & Comms":"#c2577a","Sales & BizDev":"#b3261e","Healthcare":"#2a9d8f","HR & People":"#9c6b3c","Design & Creative":"#a54ec2","Operations & Supply Chain":"#5d7a2e","Policy & Government":"#64748b"};
+const jobs = Object.fromEntries(B.jobs.map(j => [j.job_id, j]));
+const DIM = B.meta.dim;
+const raw = Uint8Array.from(atob(B.vectors), c => c.charCodeAt(0));
+const V = new Int8Array(raw.buffer);                       // n_chunks x DIM, scaled by 127
+const chunks = B.chunks.map((c, i) => ({ ...c, i, job: jobs[c.j], text: jobs[c.j].text.slice(c.a, c.b).trim() }));
+$("#metaLine").textContent = `Index: ${B.meta.chunker} chunks${B.meta.context ? " + job-title context" : ""}, ${B.meta.model} (int8), built ${B.meta.built}`;
+
+function dotRow(q, row) { let s = 0, o = row * DIM; for (let d = 0; d < DIM; d++) s += q[d] * V[o + d]; return s / 127; }
+function scoreAll(q) { const out = new Float32Array(chunks.length); for (let i = 0; i < chunks.length; i++) out[i] = dotRow(q, i); return out; }
+const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+
+/* ---------------------------------------------------------------- embedding model (lazy) */
+let extractor = null, loading = null;
+env.allowLocalModels = false;
+env.useBrowserCache = location.protocol !== "file:" && "caches" in window;
+function setPill(state, text) { const p = $("#modelPill"); p.className = "pill " + state; p.querySelector("span").textContent = text; }
+async function getModel() {
+  if (extractor) return extractor;
+  if (!loading) {
+    setPill("loading", "Loading embedding model (23 MB)…");
+    loading = pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2").then(x => { extractor = x; setPill("ready", "MiniLM ready · in-browser"); return x; })
+      .catch(e => { setPill("", "Model failed to load: check your connection"); loading = null; throw e; });
+  }
+  return loading;
+}
+async function embed(texts) {
+  const m = await getModel();
+  const out = await m(texts, { pooling: "mean", normalize: true });
+  return out.tolist().map(a => Float32Array.from(a));
+}
+
+/* ---------------------------------------------------------------- chunkers (ports of ragkit.py) */
+function fixedChunks(t, size = 500, overlap = 50) {
+  const out = []; let i = 0;
+  while (i < t.length) { const j = Math.min(i + size, t.length); out.push({ text: t.slice(i, j), start: i, end: j, section: "body" }); if (j === t.length) break; i = Math.max(j - overlap, i + 1); }
+  return out;
+}
+function recursiveChunks(t, size = 500, seps = ["\n\n", "\n", ". ", " "]) {
+  const split = (s, e, ss) => {
+    if (e - s <= size || !ss.length) return [[s, e]];
+    const [sep, ...rest] = ss, pieces = []; let i = s;
+    while (i < e) { let k = t.indexOf(sep, i); k = (k < 0 || k >= e) ? e : k + sep.length; if (k - i > size) pieces.push(...split(i, k, rest)); else pieces.push([i, k]); i = k; }
+    return pieces;
+  };
+  const spans = []; let cur = null;
+  for (const [s, e] of split(0, t.length, seps)) { if (cur && e - cur[0] <= size) cur = [cur[0], e]; else { if (cur) spans.push(cur); cur = [s, e]; } }
+  if (cur) spans.push(cur);
+  return spans.filter(([s, e]) => t.slice(s, e).trim()).map(([s, e]) => ({ text: t.slice(s, e).trim(), start: s, end: e, section: "body" }));
+}
+const JOB_HEADERS = {"about the role":"about","responsibilities":"responsibilities","requirements":"requirements","preferred qualifications":"preferred","benefits":"benefits","other":"other"};
+const RESUME_HEADERS = {"summary":"about","professional summary":"about","profile":"about","objective":"about","executive profile":"about","career overview":"about","professional profile":"about","skills":"requirements","highlights":"requirements","qualifications":"requirements","core qualifications":"requirements","experience":"responsibilities","work history":"responsibilities","professional experience":"responsibilities","relevant experience":"responsibilities","education":"preferred","education and training":"preferred","certifications":"preferred","accomplishments":"benefits",
+  "technical skills":"requirements","work experience":"responsibilities","employment history":"responsibilities","projects":"responsibilities","leadership":"responsibilities","leadership experience":"responsibilities","research experience":"responsibilities","awards":"benefits","honors":"benefits","activities":"benefits","about me":"about"};
+function findSections(t) {
+  const re = /^([A-Z][A-Za-z \/&,'()\-]{2,40}):?[ \t]*$/gm, marks = [];
+  for (const m of t.matchAll(re)) { const h = m[1].trim().toLowerCase(); const name = JOB_HEADERS[h] || RESUME_HEADERS[h]; if (name) marks.push([name, m.index]); }
+  if (!marks.length) return [["body", 0, t.length]];
+  const spans = [];
+  if (marks[0][1] > 0 && t.slice(0, marks[0][1]).trim()) spans.push(["about", 0, marks[0][1]]);
+  marks.forEach(([n, s], i) => spans.push([n, s, i + 1 < marks.length ? marks[i + 1][1] : t.length]));
+  return spans;
+}
+function sectionChunks(t, maxSize = 800) {
+  const out = [];
+  for (const [name, s, e] of findSections(t)) {
+    const body = t.slice(s, e); if (body.trim().length < 15) continue;
+    if (body.length <= maxSize) out.push({ text: body.trim(), start: s, end: e, section: name });
+    else for (const c of recursiveChunks(body, maxSize)) out.push({ ...c, start: s + c.start, end: s + c.end, section: name });
+  }
+  return out;
+}
+function sentences(t) {
+  const out = [], re = /(?<=[.!?])\s+(?=[A-Z0-9])|\n+/g; let i = 0;
+  for (const m of t.matchAll(re)) { if (t.slice(i, m.index).trim()) out.push([i, m.index]); i = m.index + m[0].length; }
+  if (t.slice(i).trim()) out.push([i, t.length]);
+  return out;
+}
+async function semanticChunks(t, pct = 80, maxSize = 900) {
+  const ss = sentences(t);
+  if (ss.length < 3) return [{ text: t.trim(), start: 0, end: t.length, section: "body" }];
+  const v = await embed(ss.map(([a, b]) => t.slice(a, b)));
+  const dist = v.slice(1).map((x, i) => 1 - dot(v[i], x));
+  const sorted = [...dist].sort((a, b) => a - b), cut = sorted[Math.min(sorted.length - 1, Math.floor(pct / 100 * (sorted.length - 1)))];
+  const out = []; let start = ss[0][0];
+  for (let i = 1; i < ss.length; i++) if (dist[i - 1] > cut || ss[i][1] - start > maxSize) { out.push([start, ss[i - 1][1]]); start = ss[i][0]; }
+  out.push([start, ss[ss.length - 1][1]]);
+  return out.map(([s, e]) => ({ text: t.slice(s, e).trim(), start: s, end: e, section: "body" }));
+}
+
+/* ---------------------------------------------------------------- the stack (step nav) */
+const LAYERS = [   // bottom -> top
+  { n: 1, name: "Chunk", side: "4 strategies" },
+  { n: 2, name: "Embed", side: "MiniLM · 384-d" },
+  { n: 3, name: "Retrieve + generate", side: "top-k → Gemma" },
+  { n: 4, name: "Evaluate", side: "Hit@5 · MRR" },
+  { n: 5, name: "Your resume", side: "in-browser match" },
+];
+const SVGNS = "http://www.w3.org/2000/svg", R = 150, T = 30, GAP = 58;
+(function buildStack() {
+  const svg = $("#stack");
+  const face = (cls, d) => { const p = document.createElementNS(SVGNS, "path"); p.setAttribute("class", cls); p.setAttribute("d", d); return p; };
+  const text = (cls, str, tf) => { const t = document.createElementNS(SVGNS, "text"); if (cls) t.setAttribute("class", cls); t.setAttribute("transform", tf); t.textContent = str; return t; };
+  LAYERS.forEach((L, i) => {
+    const g = document.createElementNS(SVGNS, "g");
+    g.setAttribute("class", "layer" + (i === 0 ? " base" : "")); g.dataset.step = L.n; g.dataset.y = (LAYERS.length - 1 - i) * GAP;
+    g.setAttribute("role", "tab"); g.setAttribute("tabindex", "0"); g.setAttribute("aria-label", `Layer ${L.n}: ${L.name}`);
+    g.append(face("top", `M0 0 L${R} ${R / 2} L0 ${R} L${-R} ${R / 2} Z`),
+             face("left", `M${-R} ${R / 2} L0 ${R} L0 ${R + T} L${-R} ${R / 2 + T} Z`),
+             face("right", `M0 ${R} L${R} ${R / 2} L${R} ${R / 2 + T} L0 ${R + T} Z`));
+    g.append(text("", `${L.n} · ${L.name}`, `translate(${-R + 12} ${R / 2 + 21}) skewY(26.565)`),
+             text("r", L.side, `translate(${14} ${R + 21}) skewY(-26.565)`));
+    g.onclick = () => go(L.n); g.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(L.n); } };
+    svg.append(g);
+  });
+})();
+function placeStack(active) {
+  const svg = $("#stack"), layers = [...svg.querySelectorAll(".layer")].sort((a, b) => a.dataset.step - b.dataset.step);
+  layers.forEach(g => svg.append(g));                       // bottom -> top draw order…
+  svg.append(layers[active - 1]);                           // …except the active layer, pulled to the front
+  layers.forEach(g => {
+    const n = +g.dataset.step, y = +g.dataset.y, on = n === active;
+    // the active layer slides out toward the viewer (down-right on the isometric axis)
+    const dx = on ? 118 : 0, dy = on ? 54 : 0;
+    g.style.transform = `translate(${dx}px, ${y + dy}px)`;
+    g.classList.toggle("on", on); g.classList.toggle("done", done.has(n)); g.setAttribute("aria-selected", on);
+  });
+  const L = LAYERS[active - 1];
+  $("#stepNow").innerHTML = `<div class="k">Layer ${active} of 5</div><div class="t">${esc(L.name)}</div>`;
+}
+let current = 1;
+$("#prevStep").onclick = () => go(Math.max(1, current - 1));
+$("#nextStep").onclick = () => go(Math.min(5, current + 1));
+const done = new Set([1]);
+function go(n) {
+  done.add(n); current = n; placeStack(n);
+  $$(".panel").forEach(p => p.classList.toggle("on", p.id === "p" + n));
+  if (n === 2) { sizeMap(); drawMap(); if (!mapRan) { mapRan = true; mapSearch(); } }
+  if (n === 3 && !qRan) { qRan = true; retrieve(); }
+  if (n === 4) renderEval();
+  try { history.replaceState(null, "", "#step" + n); } catch {}
+}
+let mapRan = false, qRan = false;
+
+/* ================================================================ 1. CHUNK */
+const personas = B.personas || {};
+const pretty = k => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+const sampleJobs = ["Data & Analytics", "Policy & Government", "Software & IT"].map(f => B.jobs.find(j => j.family === f && j.text.length > 2500 && j.text.length < 5000)).filter(Boolean);
+const docs = [
+  ...Object.entries(personas).slice(0, 3).map(([k, v]) => ({ label: "Resume: " + pretty(k), text: v })),
+  ...sampleJobs.map(j => ({ label: "Posting: " + j.title.slice(0, 26), text: j.text })),
+  { label: "Paste your own", text: null },
+];
+let docIdx = 0, strat = "fixed";
+const HELP = {
+  fixed: "Cut every N characters, stepping back by the overlap. Fast, but it ignores sentences and topics.",
+  recursive: "Split on blank lines first, then lines, then sentences, then words, only when a piece is still too long. Then pack neighbours back up to the size.",
+  section: "Use the document's own headers (Requirements, Skills, Experience…) as boundaries. Long sections are split again recursively. Each chunk remembers its section.",
+  semantic: "Embed every sentence and cut where meaning jumps between neighbours. Needs the embedding model (loads once).",
+};
+$("#docChips").innerHTML = docs.map((d, i) => `<button class="chip${i === 0 ? " on" : ""}" data-i="${i}">${esc(d.label)}</button>`).join("");
+$("#docChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; docIdx = +b.dataset.i; $$("#docChips .chip").forEach(c => c.classList.toggle("on", c === b)); $("#docPaste").style.display = docs[docIdx].text === null ? "block" : "none"; renderChunks(); };
+$("#stratChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; strat = b.dataset.s; $$("#stratChips .chip").forEach(c => c.classList.toggle("on", c === b)); renderChunks(); };
+for (const id of ["size", "overlap", "bp"]) $("#" + id).oninput = () => { $("#sizeOut").textContent = $("#size").value; $("#overlapOut").textContent = $("#overlap").value; $("#bpOut").textContent = (100 - +$("#bp").value) + "%"; renderChunks(); };
+$("#docPaste").oninput = () => renderChunks();
+let chunkToken = 0;
+async function renderChunks() {
+  const tok = ++chunkToken;
+  const t = docs[docIdx].text ?? $("#docPaste").value;
+  $("#stratHelp").textContent = HELP[strat];
+  $("#sizeCtl").style.display = strat === "semantic" ? "none" : "grid";
+  $("#overlapCtl").style.display = strat === "fixed" ? "grid" : "none";
+  $("#bpCtl").style.display = strat === "semantic" ? "grid" : "none";
+  $("#sizeCtl").firstChild.textContent = strat === "section" ? "Max section chunk (characters)" : "Chunk size (characters)";
+  if (!t.trim()) { $("#docView").innerHTML = '<span class="note">Paste some text on the left.</span>'; return; }
+  const size = +$("#size").value, ov = Math.min(+$("#overlap").value, size - 50);
+  let ch;
+  if (strat === "fixed") ch = fixedChunks(t, size, ov);
+  else if (strat === "recursive") ch = recursiveChunks(t, size);
+  else if (strat === "section") ch = sectionChunks(t, size);
+  else { $("#docView").innerHTML = '<span class="note">Embedding sentences in your browser…</span>'; ch = await semanticChunks(t, +$("#bp").value); }
+  if (tok !== chunkToken) return;
+  const lens = ch.map(c => c.text.length);
+  $("#stChunks").textContent = ch.length;
+  $("#stAvg").textContent = Math.round(lens.reduce((a, b) => a + b, 0) / lens.length);
+  $("#stCut").textContent = ch.filter(c => !/[.:!?]\s*$/.test(c.text)).length;
+  $("#stMax").textContent = Math.max(...lens);
+  // draw: fixed chunks overlap, so we colour by first owner and mark overlaps
+  let html = "", pos = 0;
+  ch.forEach((c, i) => {
+    const s = Math.max(c.start, pos), e = c.end;
+    if (s > pos) html += `<span class="gap">${esc(t.slice(pos, s))}</span>`;
+    if (c.start < pos && pos > 0) html += "";
+    const col = c.section !== "body" ? `var(--sec-${c.section})` : `var(--band-${(i % 6) + 1})`;
+    if (e > s) html += `<span class="c" style="background:${col}"><sup>#${i + 1}${c.section !== "body" ? " " + c.section : ""}</sup>${esc(t.slice(s, e))}</span>`;
+    pos = Math.max(pos, e);
+  });
+  html += esc(t.slice(pos));
+  $("#docView").innerHTML = html;
+  $("#secLegend").innerHTML = strat === "section" ? ["about","responsibilities","requirements","preferred","benefits"].map(s => `<span class="chip" style="cursor:default"><span class="dot" style="background:var(--sec-${s})"></span>${s}</span>`).join("") :
+    (strat === "fixed" && ov > 0 ? `<span class="note">Overlapping characters belong to two chunks; they're drawn once, in the earlier chunk's colour.</span>` : "");
+}
+
+/* ================================================================ 2. EMBED (map) */
+const canvas = $("#map"), ctx2 = canvas.getContext("2d");
+let W = 0, H = 0, hidden = new Set(), lantern = null, nearSet = new Set(), youPts = [];
+function sizeMap() { const r = canvas.getBoundingClientRect(), d = devicePixelRatio || 1; W = r.width; H = r.height; canvas.width = W * d; canvas.height = H * d; ctx2.setTransform(d, 0, 0, d, 0, 0); }
+const PAD = 18, px = c => PAD + c.x * (W - 2 * PAD), py = c => PAD + (1 - c.y) * (H - 2 * PAD);
+function drawMap() {
+  if (!W) return;
+  ctx2.clearRect(0, 0, W, H);
+  ctx2.fillStyle = css("--paper"); ctx2.fillRect(0, 0, W, H);
+  for (const c of chunks) {
+    const f = c.job.family; if (hidden.has(f)) continue;
+    ctx2.globalAlpha = nearSet.size ? (nearSet.has(c.i) ? 1 : .22) : .75;
+    ctx2.fillStyle = FAM_COLOR[f]; ctx2.beginPath(); ctx2.arc(px(c), py(c), nearSet.has(c.i) ? 4.5 : 2.6, 0, 7); ctx2.fill();
+  }
+  ctx2.globalAlpha = 1;
+  const glow = (x, y, r) => { ctx2.fillStyle = css("--lantern-glow"); ctx2.globalAlpha = .45; ctx2.beginPath(); ctx2.arc(x, y, r * 2.2, 0, 7); ctx2.fill(); ctx2.globalAlpha = 1; ctx2.fillStyle = css("--lantern"); ctx2.beginPath(); ctx2.arc(x, y, r, 0, 7); ctx2.fill(); ctx2.strokeStyle = css("--paper"); ctx2.lineWidth = 2; ctx2.stroke(); };
+  for (const p of youPts) glow(PAD + p.x * (W - 2 * PAD), PAD + (1 - p.y) * (H - 2 * PAD), 5);
+  if (lantern) glow(PAD + lantern.x * (W - 2 * PAD), PAD + (1 - lantern.y) * (H - 2 * PAD), 8);
+  // family labels at centroids
+  ctx2.font = "600 11px Archivo, system-ui"; ctx2.textAlign = "center";
+  for (const f of FAMILIES) {
+    if (hidden.has(f)) continue;
+    const cs = chunks.filter(c => c.job.family === f); if (!cs.length) continue;
+    const xs = cs.map(px).sort((a, b) => a - b), ys = cs.map(py).sort((a, b) => a - b), m = cs.length >> 1;
+    ctx2.fillStyle = css("--paper"); ctx2.globalAlpha = .8; const w = ctx2.measureText(f).width + 8; ctx2.fillRect(xs[m] - w / 2, ys[m] - 11, w, 15); ctx2.globalAlpha = 1;
+    ctx2.fillStyle = css("--ink"); ctx2.fillText(f, xs[m], ys[m]);
+  }
+}
+function placeAmong(scores, k = 8) {
+  const top = [...scores.keys()].sort((a, b) => scores[b] - scores[a]).slice(0, k);
+  let x = 0, y = 0, w = 0; for (const i of top) { const s = Math.max(scores[i], 0.01) ** 3; x += chunks[i].x * s; y += chunks[i].y * s; w += s; }
+  return { x: x / w, y: y / w, top };
+}
+async function mapSearch() {
+  const q = $("#mapQuery").value.trim(); if (!q) return;
+  $("#mapNear").innerHTML = "<li>Embedding…</li>";
+  const [v] = await embed([q]); const sc = scoreAll(v); const p = placeAmong(sc);
+  lantern = p; nearSet = new Set(p.top);
+  $("#mapNear").innerHTML = p.top.slice(0, 5).map(i => `<li><b style="color:var(--ink)">${esc(chunks[i].job.title.slice(0, 44))}</b> · ${chunks[i].s} · ${sc[i].toFixed(2)}</li>`).join("");
+  drawMap();
+}
+$("#mapGo").onclick = mapSearch; $("#mapQuery").onkeydown = e => { if (e.key === "Enter") mapSearch(); };
+$("#famLegend").innerHTML = FAMILIES.map(f => `<button class="chip" data-f="${esc(f)}"><span class="dot" style="background:${FAM_COLOR[f]}"></span>${esc(f)}</button>`).join("");
+$("#famLegend").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; const f = b.dataset.f; hidden.has(f) ? hidden.delete(f) : hidden.add(f); b.style.opacity = hidden.has(f) ? .4 : 1; drawMap(); };
+canvas.onmousemove = e => {
+  const r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top; let best = null, bd = 64;
+  for (const c of chunks) { if (hidden.has(c.job.family)) continue; const d = (px(c) - mx) ** 2 + (py(c) - my) ** 2; if (d < bd) { bd = d; best = c; } }
+  const tip = $("#tip");
+  if (!best) { tip.style.display = "none"; return; }
+  tip.innerHTML = `<b>${esc(best.job.title)}</b><span class="note">${esc(best.job.family)} · ${best.s}</span><div style="margin-top:4px;color:var(--ink-2)">${esc(best.text.slice(0, 220))}…</div>`;
+  tip.style.display = "block"; tip.style.left = Math.min(mx + 14, W - 340) + "px"; tip.style.top = Math.min(my + 14, H - 140) + "px";
+};
+canvas.onmouseleave = () => $("#tip").style.display = "none";
+addEventListener("resize", () => { if ($("#p2").classList.contains("on")) { sizeMap(); drawMap(); } });
+$("#mapNote").textContent = `${chunks.length.toLocaleString()} chunks from ${B.jobs.length} postings. Hover a dot to read it.`;
+$("#simGo").onclick = async () => {
+  $("#simOut").innerHTML = '<span class="note">Embedding…</span>';
+  const [a, b] = await embed([$("#simA").value, $("#simB").value]); const s = dot(a, b);
+  const word = s > .6 ? "very close" : s > .4 ? "related" : s > .2 ? "loosely related" : "unrelated";
+  $("#simOut").innerHTML = `<div class="row" style="justify-content:space-between"><b>${s.toFixed(3)}</b><span class="note">${word}</span></div><div class="simbar"><span style="width:${Math.max(0, s) * 100}%"></span></div><p class="note" style="margin:6px 0 0">Cosine similarity: 1 = same direction, 0 = unrelated. Try "Python" vs "baking bread".</p>`;
+};
+
+/* ================================================================ 3. RETRIEVE */
+const levels = [...new Set(B.jobs.map(j => j.level))].sort();
+for (const sel of ["#fLevel", "#mLevel"]) $(sel).insertAdjacentHTML("beforeend", levels.map(l => `<option>${esc(l)}</option>`).join(""));
+for (const sel of ["#fFam", "#mFam"]) $(sel).insertAdjacentHTML("beforeend", FAMILIES.map(f => `<option>${esc(f)}</option>`).join(""));
+$("#k").oninput = () => { $("#kOut").textContent = $("#k").value; };
+const RAG_SYSTEM = 'You are a careful career assistant. Answer ONLY from the numbered context. Cite sources inline like [1] or [2]. If the context does not contain the answer, say "I don\'t know from these postings." Keep it under 120 words.';
+async function retrieve() {
+  const q = $("#q").value.trim(), k = +$("#k").value; if (!q) return;
+  $("#results").innerHTML = '<p class="note">Embedding your question…</p>';
+  const [v] = await embed([q]); const sc = scoreAll(v);
+  const ok = c => (!$("#fRemote").checked || c.job.remote) && (!$("#fLevel").value || c.job.level === $("#fLevel").value) && (!$("#fFam").value || c.job.family === $("#fFam").value);
+  const top = chunks.filter(ok).sort((a, b) => sc[b.i] - sc[a.i]).slice(0, k);
+  $("#results").innerHTML = top.length ? top.map((c, n) => `<div class="res"><div class="n">[${n + 1}]</div><div><div class="t">${esc(c.job.title)} <span class="m">· ${esc(c.job.family)} · ${c.s} · ${esc(c.job.level)}${c.job.remote ? " · remote" : ""}</span></div>
+    <div class="bar"><div class="b" style="width:${Math.max(4, sc[c.i] * 260)}px"></div><span class="v">${sc[c.i].toFixed(3)}</span></div><div class="x">${esc(c.text.slice(0, 260))}${c.text.length > 260 ? "…" : ""}</div></div></div>`).join("") : '<p class="note">No chunks pass those filters.</p>';
+  const ctxBlock = top.map((c, n) => `[${n + 1}] ${c.job.title} (${c.s}): ${c.text}`).join("\n\n");
+  $("#promptView").textContent = `${RAG_SYSTEM}\n\nContext:\n${ctxBlock}\n\nQuestion: ${q}`;
+}
+$("#qGo").onclick = retrieve; for (const id of ["#fRemote", "#fLevel", "#fFam"]) $(id).onchange = retrieve;
+
+/* ================================================================ 4. EVALUATE */
+let evalDrawn = false;
+function renderEval() {
+  if (evalDrawn) return; evalDrawn = true;
+  const E = B.eval || [];
+  if (!E.length) { $("#lb").innerHTML = '<p class="note">No evaluation results in this bundle. Run the Evaluate cells in the notebook, then export again.</p>'; return; }
+  const name = r => r.chunker + (r.context ? "" : " · no context");
+  const sorted = [...E].sort((a, b) => b.mrr[0] - a.mrr[0]);
+  const rng = ([m, lo, hi]) => `<div class="range"><div class="track"></div><div class="ci" style="left:${lo * 100}%;width:${(hi - lo) * 100}%"></div><div class="pt" style="left:${m * 100}%"></div><span class="val" style="${hi > .85 ? `left:calc(${lo * 100}% - 40px)` : `left:calc(${hi * 100}% + 10px)`}">${m.toFixed(2)}</span></div>`;
+  $("#lb").innerHTML = `<div class="lb-row" style="padding-top:0"><div class="label" style="margin:0">Strategy</div><div class="label" style="margin:0">Hit@5 (0 → 1)</div><div class="label" style="margin:0">MRR (0 → 1)</div></div>` +
+    sorted.map(r => `<div class="lb-row"><div class="lb-name">${esc(name(r))}<small>${r.chunks.toLocaleString()} chunks</small></div>${rng(r.hit)}${rng(r.mrr)}</div>`).join("") +
+    `<p class="note" style="margin:10px 0 0">With only 48 questions the ranges are wide. The clearest gap here is <b>context on vs off</b>: putting the job title in front of every chunk helps it find the right posting.</p>`;
+  const qs = sorted[0].questions.map((q, i) => ({ ...q, ranks: sorted.map(r => r.questions[i].rank) }));
+  const cls = r => r === 1 ? "r1" : (r && r <= 5) ? "r5" : "rx";
+  $("#qtable").innerHTML = `<thead><tr><th>Question</th>${sorted.map(r => `<th>${esc(name(r))}</th>`).join("")}</tr></thead><tbody>` +
+    qs.map((q, i) => `<tr data-i="${i}"><td>${esc(q.q)} <span class="diff">${q.difficulty}</span></td>${q.ranks.map(r => `<td><span class="rk ${cls(r)}">${r ?? "–"}</span></td>`).join("")}</tr>`).join("") + "</tbody>";
+  $("#qtable").onclick = e => {
+    const tr = e.target.closest("tr[data-i]"); if (!tr) return; const q = qs[+tr.dataset.i], j = jobs[q.job];
+    $("#qDetail").innerHTML = `<div class="label">Question detail</div><p style="margin:0 0 8px"><b>${esc(q.q)}</b></p><p class="note" style="margin:0 0 6px">Written from: <b style="color:var(--ink)">${esc(j.title)}</b> · ${esc(j.family)} · ${q.difficulty}</p>` +
+      sorted.map((r, k) => `<div class="row" style="justify-content:space-between;font-size:13px"><span>${esc(name(r))}</span><span class="rk ${cls(q.ranks[k])}">${q.ranks[k] ? "rank " + q.ranks[k] : "not in top 20"}</span></div>`).join("") +
+      `<button class="btn ghost" style="margin-top:10px" id="tryQ">Try it in Retrieve →</button>`;
+    $("#tryQ").onclick = () => { $("#q").value = q.q; go(3); retrieve(); };
+  };
+}
+
+/* ================================================================ 5. YOUR RESUME */
+$("#personaChips").innerHTML = Object.keys(personas).map(k => `<button class="chip" data-k="${k}">${esc(pretty(k))}</button>`).join("");
+$("#personaChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; $$("#personaChips .chip").forEach(c => c.classList.toggle("on", c === b)); $("#resumeText").value = personas[b.dataset.k]; matchNow(); };
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]));
+$("#file").onchange = e => e.target.files[0] && readFile(e.target.files[0]);
+const loadScript = src => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+async function readFile(f) {
+  $("#matches").innerHTML = `<p class="note">Reading ${esc(f.name)}…</p>`;
+  let text = "";
+  try {
+    if (/\.pdf$/i.test(f.name)) {
+      if (!window.pdfjsLib) { await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"); pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }
+      const pdf = await pdfjsLib.getDocument({ data: await f.arrayBuffer() }).promise;
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const items = (await (await pdf.getPage(p)).getTextContent()).items; let lastY = null;
+        for (const it of items) { const y = it.transform[5]; if (lastY !== null && Math.abs(y - lastY) > 2) text += "\n"; text += it.str; if (it.hasEOL) text += "\n"; lastY = y; }
+        text += "\n";
+      }
+    } else if (/\.docx$/i.test(f.name)) {
+      if (!window.mammoth) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");
+      text = (await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() })).value;
+    } else text = await f.text();
+  } catch (err) { $("#matches").innerHTML = `<p class="note">Couldn't read that file (${esc(err.message || err)}). Try pasting the text instead.</p>`; return; }
+  text = text.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+/g, " ").trim();
+  $$("#personaChips .chip").forEach(c => c.classList.remove("on"));
+  $("#resumeText").value = text; matchNow();
+}
+$("#matchGo").onclick = matchNow; $("#mFam").onchange = matchNow; $("#mLevel").onchange = matchNow;
+const W_SEC = { requirements: 1.5, preferred: 1.0, responsibilities: 1.2 };
+async function matchNow() {
+  const t = $("#resumeText").value.trim(); if (!t) return;
+  $("#matches").innerHTML = '<p class="note">Chunking and embedding your resume in this tab…</p>';
+  const MIN = 80;   // tiny chunks ("Contract, 6+ months") match anything by accident, so they don't count
+  let rc = sectionChunks(t).filter(c => c.text.length >= MIN); if (rc.length < 2) rc = recursiveChunks(t, 600);
+  $("#resumeChunks").innerHTML = rc.map((c, i) => `<div style="margin:3px 0"><span class="rk r5">#${i + 1}</span> <b style="color:var(--ink)">${c.section}</b> · ${c.text.length} chars</div>`).join("");
+  const rv = await embed(rc.map(c => c.text));
+  const keepSec = new Set(["requirements", "responsibilities", "preferred", "body", "about"]);
+  const best = new Float32Array(chunks.length), arg = new Int16Array(chunks.length);
+  const usable = c => keepSec.has(c.s) && c.text.length >= MIN;
+  for (const c of chunks) { if (!usable(c)) continue; let b = -1, a = 0; for (let r = 0; r < rv.length; r++) { const s = dotRow(rv[r], c.i); if (s > b) { b = s; a = r; } } best[c.i] = b; arg[c.i] = a; }
+  const agg = {};
+  for (const c of chunks) { if (!usable(c)) continue; const w = W_SEC[c.s] ?? .6; (agg[c.j] ??= { s: 0, w: 0, cs: [] }); agg[c.j].s += w * best[c.i]; agg[c.j].w += w; agg[c.j].cs.push(c); }
+  let list = Object.entries(agg).map(([j, a]) => ({ job: jobs[j], score: a.s / a.w, cs: a.cs }))
+    .filter(m => (!$("#mFam").value || m.job.family === $("#mFam").value) && (!$("#mLevel").value || m.job.level === $("#mLevel").value))
+    .sort((a, b) => b.score - a.score).slice(0, 12);
+  // place resume on the map
+  youPts = rv.map(v => { const p = placeAmong(scoreAll(v), 6); return { x: p.x, y: p.y }; });
+  const lo = list.length ? list[list.length - 1].score : 0, hi = list.length ? list[0].score : 1;
+  $("#matches").innerHTML = `<div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="label" style="margin:0">Top matches</div><button class="btn ghost" id="seeMap" style="padding:4px 10px;font-size:12.5px">See yourself on the map →</button></div>` +
+    list.map((m, n) => {
+      const ev = [...m.cs].sort((a, b) => best[b.i] - best[a.i]).slice(0, 2);
+      const gaps = m.cs.filter(c => (c.s === "requirements" || c.s === "preferred") && best[c.i] < .45).sort((a, b) => best[a.i] - best[b.i]).slice(0, 2);
+      const sal = m.job.salary_min ? ` · $${Math.round(m.job.salary_min / 1000)}k–${Math.round(m.job.salary_max / 1000)}k` : "";
+      return `<div class="match${n === 0 ? " open" : ""}"><div class="match-h"><div class="n" style="font-weight:800;color:var(--series-deep)">${n + 1}</div>
+        <div><div style="font-weight:700;font-size:14px">${esc(m.job.title)}</div><div class="note"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${FAM_COLOR[m.job.family]};margin-right:5px"></span>${esc(m.job.family)} · ${esc(m.job.level)} · ${esc(m.job.location || "")}${m.job.remote ? " · remote" : ""}${sal}</div></div>
+        <div><div class="bar" style="justify-content:flex-end"><div class="b" style="width:${20 + 80 * (m.score - lo) / Math.max(hi - lo, 1e-6)}px"></div><span class="v">${m.score.toFixed(3)}</span></div></div></div>
+        <div class="body"><div class="label">Evidence: your chunk ↔ their chunk</div>
+        ${ev.map(c => `<div class="pair"><div class="you">${esc(rc[arg[c.i]].text.slice(0, 150))}…</div><div class="s">${best[c.i].toFixed(2)}</div><div class="job"><b>${c.s}</b>: ${esc(c.text.slice(0, 170))}…</div></div>`).join("")}
+        <div class="label" style="margin-top:10px">Gaps: their requirements with no close chunk of yours</div>
+        <ul class="gaps">${gaps.length ? gaps.map(c => `<li>${esc(c.text.slice(0, 180))}… <span class="note">(best ${best[c.i].toFixed(2)})</span></li>`).join("") : "<li>None below 0.45: your resume touches every requirement chunk.</li>"}</ul>
+        <a class="note" href="${esc(m.job.url)}" target="_blank" rel="noopener">Original posting ↗</a> <span class="note">(${esc(m.job.source)}; may be closed)</span></div></div>`;
+    }).join("");
+  $$("#matches .match-h").forEach(h => h.onclick = () => h.parentElement.classList.toggle("open"));
+  $("#seeMap").onclick = () => { lantern = null; nearSet = new Set(); go(2); $("#mapNear").innerHTML = "<li>Amber dots = your resume chunks.</li>"; };
+}
+
+/* ---------------------------------------------------------------- boot */
+renderChunks();
+placeStack(1);
+const fromHash = () => { const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
+fromHash(); addEventListener("hashchange", fromHash);
+getModel().catch(() => {});   // warm up in the background
+</script>
+</body>
+</html>
