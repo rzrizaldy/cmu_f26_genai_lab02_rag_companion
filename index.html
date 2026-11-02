@@ -66,6 +66,23 @@ h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spac
 .stackbox .hit rect{fill:transparent;cursor:pointer;outline:none}
 .stackbox .hit rect:hover{fill:rgba(255,255,255,.05)}
 .stackbox .hit rect:focus-visible{stroke:#ffd36b;stroke-width:2}
+.stackbox .enlarge{position:absolute;right:12px;top:12px;z-index:3;border:1px solid rgba(255,255,255,.25);background:rgba(13,20,58,.7);color:#E8ECF6;border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+.stackbox .enlarge:hover{background:rgba(232,137,43,.85);border-color:#E8892B}
+.fover{position:fixed;inset:0;z-index:60;background:rgba(6,10,30,.86);display:flex;align-items:center;justify-content:center;padding:20px}
+.fover[hidden]{display:none}
+.fstage{position:relative;width:min(1180px,96vw,calc((100vh - 170px) * 640 / 560));border-radius:20px;background:#1c2150;
+  background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 22px),repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0 1px,transparent 1px 44px);
+  padding:14px 14px 0;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.fstage svg{display:block;width:100%;height:auto}
+.fstage svg.hit{position:absolute;left:14px;top:14px;width:calc(100% - 28px)}
+.fstage .hit rect{fill:transparent;cursor:pointer;outline:none}
+.fstage .hit rect:hover{fill:rgba(255,255,255,.05)}
+.fstage .hit rect:focus-visible{stroke:#ffd36b;stroke-width:2}
+.fbar{display:flex;align-items:center;gap:14px;padding:12px 6px 14px;color:#E8ECF6}
+.fbar .fdesc{flex:1;font-size:15px;line-height:1.45;color:#C9D1E6}
+.fbar .fdesc b{color:#FFB45E;font-size:16px}
+.fbar button{border:1px solid rgba(255,255,255,.25);background:rgba(13,20,58,.7);color:#E8ECF6;border-radius:999px;padding:6px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fbar button:hover{border-color:#E8892B}
 .stackbox .cap{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;color:#aab0d6;letter-spacing:.04em}
 .layer{cursor:pointer;outline:none;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .layer .top{fill:#e8e6f6;fill-opacity:.82;stroke:#ffffff;stroke-opacity:.55;stroke-width:1}
@@ -279,6 +296,7 @@ footer p{margin:4px 0;max-width:110ch}
     <div class="stackbox" role="tablist" aria-label="RAG funnel: click a level">
       <svg id="funnel" aria-hidden="true"></svg>
       <svg id="funnelHit" class="hit"></svg>
+      <button class="enlarge" id="funnelBig" type="button" aria-haspopup="dialog">⤢ Enlarge</button>
       <div class="cap">THE RAG FUNNEL · CLICK A PART</div>
     </div>
   </div>
@@ -617,13 +635,47 @@ FH.querySelectorAll("rect").forEach(r => { r.onclick = () => go(+r.dataset.step)
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let funnelVisible = true, funnelLast = 0;
 new IntersectionObserver(es => { funnelVisible = es[0].isIntersecting; }).observe(FN);
+// enlarged view: the same animation, centred over the page (handy for presenting)
+const FL = $("#funnelL"), FLH = $("#funnelLHit"), FO = $("#fOver");
+FL.setAttribute("viewBox", RAGFunnel.VIEW); FLH.setAttribute("viewBox", RAGFunnel.VIEW);
+FLH.innerHTML = FH.innerHTML;
+FLH.querySelectorAll("rect").forEach(r => { r.onclick = () => go(+r.dataset.step); r.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(+r.dataset.step); } }; });
+const FDESC = [
+  "Job postings fall in and are cut into small pieces (chunks). 424 postings become 2,841 chunks.",
+  "EmbeddingGemma gives each chunk 256 numbers, so it lands on the shared meaning space next to chunks with similar meaning. This part is built once.",
+  "For every question: each chunk is scored against the question (brighter = closer), and the 5 closest go to Gemma, which answers with citations.",
+  "A separate test, not part of each answer: 48 questions where we know the right posting. It was in the top 5 for 47 of them.",
+  "Your resume goes through the same model, so its chunks land in the same space. Each one is tied to its nearest job chunks: that is the whole matcher.",
+];
+const bigOpen = () => !FO.hidden;
+function setBigDesc() { $("#fDesc").innerHTML = `<b>${current} · ${esc(LAYERS[current - 1].name)}</b><br>${FDESC[current - 1]}`; }
+function openBig() { FO.hidden = false; setBigDesc(); FL.innerHTML = RAGFunnel.svg(2.2, current); $("#fClose").focus(); document.body.style.overflow = "hidden"; }
+function closeBig() { FO.hidden = true; document.body.style.overflow = ""; $("#funnelBig").focus(); }
+$("#funnelBig").onclick = openBig;
+$("#fClose").onclick = closeBig;
+$("#fPrev").onclick = () => go(Math.max(1, current - 1));
+$("#fNext").onclick = () => go(Math.min(5, current + 1));
+FO.addEventListener("click", e => { if (e.target === FO) closeBig(); });
+addEventListener("keydown", e => {
+  if (!bigOpen()) return;
+  if (e.key === "Escape") closeBig();
+  else if (e.key === "ArrowRight") go(Math.min(5, current + 1));
+  else if (e.key === "ArrowLeft") go(Math.max(1, current - 1));
+});
 function drawFunnel(ms) {
-  if (ms - funnelLast > 33 && funnelVisible && !document.hidden) { FN.innerHTML = RAGFunnel.svg(reduceMotion ? 2.2 : ms / 1000, current); funnelLast = ms; }
+  if (ms - funnelLast > 33 && !document.hidden) {
+    const t = reduceMotion ? 2.2 : ms / 1000;
+    if (funnelVisible && !bigOpen()) FN.innerHTML = RAGFunnel.svg(t, current);
+    if (bigOpen()) FL.innerHTML = RAGFunnel.svg(t, current);
+    funnelLast = ms;
+  }
   if (!reduceMotion) requestAnimationFrame(drawFunnel);
 }
 function placeStack(active) {
   FH.querySelectorAll("rect").forEach(r => r.setAttribute("aria-selected", +r.dataset.step === active));
-  if (reduceMotion) FN.innerHTML = RAGFunnel.svg(2.2, active);
+  if (reduceMotion) { FN.innerHTML = RAGFunnel.svg(2.2, active); FL.innerHTML = RAGFunnel.svg(2.2, active); }
+  FLH.querySelectorAll("rect").forEach(r => r.setAttribute("aria-selected", +r.dataset.step === active));
+  if (bigOpen()) setBigDesc();
   $("#stepNow").innerHTML = `<div class="k">Step ${active} of 5</div><div class="t">${esc(LAYERS[active - 1].name)}</div>`;
 }
 let current = 1;
@@ -982,5 +1034,17 @@ const fromHash = () => { const h = +(location.hash.match(/step(\d)/) || [])[1]; 
 fromHash(); addEventListener("hashchange", fromHash);
 if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).then(k => { if (k.some(r => r.url.includes("embeddinggemma"))) getModel().catch(() => {}); }).catch(() => {});
 </script>
+<div class="fover" id="fOver" hidden role="dialog" aria-modal="true" aria-label="The RAG funnel, enlarged">
+  <div class="fstage">
+    <svg id="funnelL" aria-hidden="true"></svg>
+    <svg id="funnelLHit" class="hit"></svg>
+    <div class="fbar">
+      <button type="button" id="fPrev" aria-label="Previous step">←</button>
+      <div class="fdesc" id="fDesc" aria-live="polite"></div>
+      <button type="button" id="fNext" aria-label="Next step">→</button>
+      <button type="button" id="fClose">✕ Close</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
