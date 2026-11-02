@@ -66,7 +66,7 @@ h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spac
 .stackbox .hit rect{fill:transparent;cursor:pointer;outline:none}
 .stackbox .hit rect:hover{fill:rgba(255,255,255,.05)}
 .stackbox .hit rect:focus-visible{stroke:#ffd36b;stroke-width:2}
-.stackbox .cap{position:absolute;left:14px;bottom:10px;font-size:11.5px;color:#aab0d6;letter-spacing:.04em}
+.stackbox .cap{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;color:#aab0d6;letter-spacing:.04em}
 .layer{cursor:pointer;outline:none;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .layer .top{fill:#e8e6f6;fill-opacity:.82;stroke:#ffffff;stroke-opacity:.55;stroke-width:1}
 .layer .left{fill:#c9c6e6;fill-opacity:.78;stroke:#ffffff;stroke-opacity:.35;stroke-width:1}
@@ -244,6 +244,7 @@ details summary{cursor:pointer;font-weight:600;font-size:13.5px}
   .grid,.grid2{grid-template-columns:1fr !important}
   .stats{grid-template-columns:repeat(2,1fr)}
   .stackbox{min-height:0}
+  .stackbox .cap{display:none}
   #map{height:420px}
   .lb-row{grid-template-columns:1fr;gap:6px}
   .match-h{grid-template-columns:28px 1fr 90px}
@@ -266,7 +267,7 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="hero">
     <div>
       <h1>How does a machine read your resume?</h1>
-      <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning. A question is compared with every piece, and only the closest ones get through the neck to the LLM. Then we check if the answer was right, and at the end your own resume goes through its own small funnel. Click a level of the funnel, or use the buttons below.</p>
+      <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning, so it lands on a shared "meaning space" next to similar pieces. That part is built once. Then, for every question, each piece is compared with the question and only the five closest go to the LLM (Gemma), which answers from them. Your resume goes through its own small funnel into the same space, so we can see which job pieces sit closest to yours. Click any part of the picture, or use the buttons below.</p>
       <div class="stepnow" id="stepNow"><div class="k">Step 1 of 5</div><div class="t">Chunk</div></div>
       <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button></div>
       <div class="modelcard" id="modelCard">
@@ -278,7 +279,7 @@ footer p{margin:4px 0;max-width:110ch}
     <div class="stackbox" role="tablist" aria-label="RAG funnel: click a level">
       <svg id="funnel" aria-hidden="true"></svg>
       <svg id="funnelHit" class="hit"></svg>
-      <div class="cap">THE RAG FUNNEL · TOP → BOTTOM</div>
+      <div class="cap">THE RAG FUNNEL · CLICK A PART</div>
     </div>
   </div>
 </header>
