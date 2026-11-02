@@ -1,6 +1,6 @@
 # RAG Companion · Lab 02
 
-Interactive companion for **Lab 02: RAG, the 2026 way. How does a machine read your resume?**
+Interactive companion for **Lab 02: RAG. How does a machine read your resume?**
 CMU Generative AI Lab · Fall 2026 · prepared by Rizaldy Utomo (TA)
 
 **Live:** https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/
