@@ -50,6 +50,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 header.top{padding:22px 0 10px}
 .byline{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
 .byline .theme-btn{margin-left:auto;flex:none}
+.byline #themeBtn{margin-left:8px}
 .byline b{color:var(--ink)}
 .hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end;margin-top:14px}
 h1{font-size:clamp(26px,3.4vw,36px);line-height:1.08;font-weight:800;letter-spacing:-.01em;margin:0 0 8px;font-stretch:92%}
@@ -272,6 +273,32 @@ details summary{cursor:pointer;font-weight:600;font-size:13.5px}
 }
 footer{border-top:1px solid var(--rule);padding:18px 0 30px;font-size:12.5px;color:var(--muted)}
 footer p{margin:4px 0;max-width:110ch}
+
+/* intro video: a small silent loop in the corner; the real video (with sound) only loads when someone asks for it */
+.vpip{position:fixed;right:24px;bottom:24px;z-index:50;width:104px;height:104px;transition:transform .18s}
+.vpip:hover{transform:scale(1.08)}
+.vpip[hidden]{display:none}
+.vpip-play{display:block;position:relative;width:100%;height:100%;padding:0;border:2px solid var(--axis);border-radius:20px;overflow:hidden;background:var(--wash);cursor:pointer;box-shadow:0 8px 28px rgba(6,10,30,.32);transition:border-color .18s}
+.vpip-play:hover,.vpip-play:focus-visible{border-color:var(--lantern)}
+.vpip-play:focus-visible{outline:2px solid var(--lantern);outline-offset:2px}
+.vpip-play video{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.vpip-chip{position:absolute;left:6px;bottom:6px;padding:2px 7px;border-radius:999px;background:rgba(9,20,49,.82);color:#fff;font-size:11.5px;font-weight:600;line-height:1.4}
+.vpip-x{position:absolute;top:-10px;right:-10px;width:26px;height:26px;padding:0;border:1px solid var(--rule);border-radius:50%;background:var(--card);color:var(--ink);font-size:12px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(6,10,30,.25)}
+.vpip-x:hover{background:var(--wash)}
+.vover{position:fixed;inset:0;z-index:70;background:rgba(6,10,30,.9);display:flex;align-items:center;justify-content:center;padding:20px}
+.vover[hidden]{display:none}
+.vstage{width:min(1280px,100%,calc((100vh - 110px) * 16 / 9));transform-origin:100% 100%;animation:vgrow .22s ease-out}
+@keyframes vgrow{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
+.vbar{display:flex;align-items:center;gap:14px;padding:0 2px 10px;color:#E8ECF6;font-size:14px}
+.vbar b{flex:1;min-width:0;font-weight:600}
+.vbar a{color:#E8ECF6;white-space:nowrap}
+.vbar button{flex:none;border:1px solid rgba(255,255,255,.3);background:rgba(13,20,58,.7);color:#E8ECF6;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.vbar button:hover{background:rgba(232,137,43,.85);border-color:#E8892B}
+.vframe{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.vframe iframe{display:block;width:100%;height:100%;border:0}
+@media (max-width:640px){.byline{flex-wrap:wrap}.byline span{flex:1 1 calc(100% - 60px)}.byline #introBtn{margin-left:0}.vpip{right:18px;bottom:18px;width:76px;height:76px}.vpip-play{border-radius:16px}.vbar b{font-size:13px}}
+@media (prefers-reduced-motion:reduce){.vpip,.vpip-play{transition:none}.vpip:hover{transform:none}.vstage{animation:none}}
+@media print{.vpip{display:none}}
 </style>
 </head>
 <body>
@@ -279,6 +306,7 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="byline">
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8 12 13 3 8Z" fill="#e8892b"/><path d="M3 11.5 12 16.5 21 11.5" fill="none" stroke="#9e9ad0" stroke-width="1.8"/><path d="M3 15.5 12 20.5 21 15.5" fill="none" stroke="#6a6fc4" stroke-width="1.8"/></svg>
     <span><b>CMU Generative AI Lab · F26 · Lab 02</b> · prepared by Rizaldy Utomo · 6 Nov 2026</span>
+    <button class="theme-btn" id="introBtn" type="button" aria-label="Watch the 2-minute intro video, with sound">▶ Intro video</button>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark mode">◐ Light / dark</button>
   </div>
   <div class="hero">
@@ -1046,5 +1074,67 @@ if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).t
     </div>
   </div>
 </div>
+<div class="vpip" id="vPip">
+  <button class="vpip-play" id="vPipPlay" type="button" aria-label="Watch the 2-minute intro video, with sound">
+    <video id="vPipVid" src="intro_loop.mp4" poster="intro_poster.jpg" muted loop playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>
+    <span class="vpip-chip" aria-hidden="true">▶ 2:11</span>
+  </button>
+  <button class="vpip-x" id="vPipX" type="button" aria-label="Hide the video">✕</button>
+</div>
+<div class="vover" id="vOver" hidden role="dialog" aria-modal="true" aria-label="Intro video: how does a machine read your resume?">
+  <div class="vstage">
+    <div class="vbar">
+      <b>How does a machine read your resume? · 2:11</b>
+      <a href="https://drive.google.com/file/d/164EBxj8MElLorG7-vEkeGECri97LlFNL/view?usp=sharing" target="_blank" rel="noopener">Open in Drive ↗</a>
+      <button type="button" id="vClose">✕ Close</button>
+    </div>
+    <div class="vframe"><iframe id="vFrame" title="Intro video" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
+  </div>
+</div>
+<script>
+(() => {
+  const DRIVE = "https://drive.google.com/file/d/164EBxj8MElLorG7-vEkeGECri97LlFNL/preview", KEY = "lab02_intro_hidden";
+  const el = id => document.getElementById(id);
+  const pip = el("vPip"), loop = el("vPipVid"), over = el("vOver"), frame = el("vFrame"), closeBtn = el("vClose");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let hidden = false, back = null;
+  try { hidden = localStorage.getItem(KEY) === "1"; } catch (e) {}
+  pip.hidden = hidden;
+  const playLoop = () => { if (!still && !pip.hidden) loop.play().catch(() => {}); };
+  playLoop();
+  const open = () => {
+    back = document.activeElement;
+    loop.pause();
+    frame.src = DRIVE;                       // loads only now, so nothing plays with sound before a click
+    over.hidden = false;
+    document.documentElement.style.overflow = "hidden";
+    closeBtn.focus();
+  };
+  const close = () => {
+    frame.removeAttribute("src");            // removing the player is what stops the sound
+    over.hidden = true;
+    document.documentElement.style.overflow = "";
+    playLoop();
+    if (back && back.isConnected && back.offsetParent) back.focus();
+  };
+  el("vPipPlay").onclick = open;
+  el("introBtn").onclick = open;
+  closeBtn.onclick = close;
+  over.onclick = e => { if (e.target === over) close(); };
+  el("vPipX").onclick = () => {
+    pip.hidden = true; loop.pause();
+    try { localStorage.setItem(KEY, "1"); } catch (e) {}
+    el("introBtn").focus();
+  };
+  document.addEventListener("keydown", e => {
+    if (over.hidden) return;
+    if (e.key === "Escape") close();
+    if (e.key === "Tab") {                  // keep the keyboard inside the dialog
+      const items = [...over.querySelectorAll("a,button,iframe")], i = items.indexOf(document.activeElement);
+      if (e.shiftKey ? i <= 0 : i === items.length - 1) { e.preventDefault(); items[e.shiftKey ? items.length - 1 : 0].focus(); }
+    }
+  });
+})();
+</script>
 </body>
 </html>
