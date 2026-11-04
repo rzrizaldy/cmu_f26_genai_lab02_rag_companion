@@ -295,7 +295,8 @@ footer p{margin:4px 0;max-width:110ch}
 .vbar button{flex:none;border:1px solid rgba(255,255,255,.3);background:rgba(13,20,58,.7);color:#E8ECF6;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
 .vbar button:hover{background:rgba(232,137,43,.85);border-color:#E8892B}
 .vframe{aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5)}
-.vframe iframe{display:block;width:100%;height:100%;border:0}
+.vframe iframe,.vframe video{display:block;width:100%;height:100%;border:0}
+.vframe [hidden]{display:none}
 @media (max-width:640px){.byline{flex-wrap:wrap}.byline span{flex:1 1 calc(100% - 60px)}.byline #introBtn{margin-left:0}.vpip{right:18px;bottom:18px;width:76px;height:76px}.vpip-play{border-radius:16px}.vbar b{font-size:13px}}
 @media (prefers-reduced-motion:reduce){.vpip,.vpip-play{transition:none}.vpip:hover{transform:none}.vstage{animation:none}}
 @media print{.vpip{display:none}}
@@ -1088,14 +1089,16 @@ if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).t
       <a href="https://drive.google.com/file/d/164EBxj8MElLorG7-vEkeGECri97LlFNL/view?usp=sharing" target="_blank" rel="noopener">Open in Drive ↗</a>
       <button type="button" id="vClose">✕ Close</button>
     </div>
-    <div class="vframe"><iframe id="vFrame" title="Intro video" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
+    <div class="vframe"><video id="vFull" controls playsinline preload="none" poster="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/intro_full.jpg" aria-label="Intro video"></video><iframe id="vFrame" title="Intro video" allow="autoplay; fullscreen" allowfullscreen hidden></iframe></div>
   </div>
 </div>
 <script>
 (() => {
+  // the full URL so the copy of this page in the student zip finds the video too (it isn't in the zip)
+  const FULL = "https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/intro_full.mp4";
   const DRIVE = "https://drive.google.com/file/d/164EBxj8MElLorG7-vEkeGECri97LlFNL/preview", KEY = "lab02_intro_hidden";
   const el = id => document.getElementById(id);
-  const pip = el("vPip"), loop = el("vPipVid"), over = el("vOver"), frame = el("vFrame"), closeBtn = el("vClose");
+  const pip = el("vPip"), loop = el("vPipVid"), over = el("vOver"), full = el("vFull"), frame = el("vFrame"), closeBtn = el("vClose");
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let hidden = false, back = null;
   try { hidden = localStorage.getItem(KEY) === "1"; } catch (e) {}
@@ -1105,17 +1108,24 @@ if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).t
   const open = () => {
     back = document.activeElement;
     loop.pause();
-    frame.src = DRIVE;                       // loads only now, so nothing plays with sound before a click
     over.hidden = false;
+    full.hidden = false; frame.hidden = true;
+    full.src = FULL;                         // loads only now, so nothing plays with sound before a click
+    full.play().catch(() => {});
     document.documentElement.style.overflow = "hidden";
     closeBtn.focus();
   };
   const close = () => {
-    frame.removeAttribute("src");            // removing the player is what stops the sound
+    full.pause(); full.removeAttribute("src"); full.load();
+    frame.removeAttribute("src");            // removing the Drive player is what stops its sound
     over.hidden = true;
     document.documentElement.style.overflow = "";
     playLoop();
     if (back && back.isConnected && back.offsetParent) back.focus();
+  };
+  full.onerror = () => {                     // hosted file unavailable: fall back to the Drive player
+    if (over.hidden || !full.getAttribute("src")) return;
+    full.hidden = true; frame.hidden = false; frame.src = DRIVE;
   };
   el("vPipPlay").onclick = open;
   el("introBtn").onclick = open;
@@ -1130,7 +1140,7 @@ if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).t
     if (over.hidden) return;
     if (e.key === "Escape") close();
     if (e.key === "Tab") {                  // keep the keyboard inside the dialog
-      const items = [...over.querySelectorAll("a,button,iframe")], i = items.indexOf(document.activeElement);
+      const items = [...over.querySelectorAll("a,button,video,iframe")].filter(x => !x.hidden), i = items.indexOf(document.activeElement);
       if (e.shiftKey ? i <= 0 : i === items.length - 1) { e.preventDefault(); items[e.shiftKey ? items.length - 1 : 0].focus(); }
     }
   });
