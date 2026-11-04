@@ -3,6 +3,8 @@
 Interactive companion for **Lab 02: RAG. How does a machine read your resume?**
 CMU Generative AI Lab · Fall 2026 · prepared by Rizaldy Utomo (TA)
 
+This example may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.
+
 **Live:** https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/
 
 Five layers of a RAG pipeline you can click through: chunking strategies, an embedding map of 2,800+

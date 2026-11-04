@@ -314,6 +314,7 @@ footer p{margin:4px 0;max-width:110ch}
     <div>
       <h1>How does a machine read your resume?</h1>
       <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning, so it lands on a shared "meaning space" next to similar pieces. That part is built once. Then, for every question, each piece is compared with the question and only the five closest go to the LLM (Gemma), which answers from them. Your resume goes through its own small funnel into the same space, so we can see which job pieces sit closest to yours. Click any part of the picture, or use the buttons below.</p>
+      <p class="note" id="atsNoteTop" style="max-width:62ch;margin:8px 0 0">This example may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.</p>
       <div class="stepnow" id="stepNow"><div class="k">Step 1 of 5</div><div class="t">Chunk</div></div>
       <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button></div>
       <div class="modelcard" id="modelCard">
@@ -454,6 +455,7 @@ footer p{margin:4px 0;max-width:110ch}
 <!-- ============================== 5 YOUR RESUME ============================== -->
 <section class="panel" id="p5">
   <div class="step-head"><h2>5 · Your resume against 424 real postings</h2><p>Now we use everything from steps 1 to 3 on your resume. It is cut into sections, turned into numbers with EmbeddingGemma, and compared with every chunk of every posting.</p></div>
+  <p class="callout" id="atsNote" style="margin:0 0 14px"><b>About this example.</b> This may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.</p>
   <div class="grid" style="grid-template-columns:360px 1fr">
     <div class="wsteps">
       <div class="wstep" id="w1">
