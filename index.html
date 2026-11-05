@@ -298,7 +298,9 @@ footer p{margin:4px 0;max-width:110ch}
 .vframe iframe,.vframe video{display:block;width:100%;height:100%;border:0}
 .vframe [hidden]{display:none}
 @media (max-width:640px){.byline{flex-wrap:wrap}.byline span{flex:1 1 calc(100% - 60px)}.byline #introBtn{margin-left:0}.vpip{right:18px;bottom:18px;width:76px;height:76px}.vpip-play{border-radius:16px}.vbar b{font-size:13px}}
-@media (prefers-reduced-motion:reduce){.vpip,.vpip-play{transition:none}.vpip:hover{transform:none}.vstage{animation:none}}
+.theme-btn.vcatch{animation:vcatch .9s ease-out 2}
+@keyframes vcatch{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--lantern) 70%,transparent);border-color:var(--lantern)}100%{box-shadow:0 0 0 12px transparent;border-color:var(--rule)}}
+@media (prefers-reduced-motion:reduce){.vpip,.vpip-play{transition:none}.vpip:hover{transform:none}.vstage{animation:none}.theme-btn.vcatch{animation:none;border-color:var(--lantern)}}
 @media print{.vpip{display:none}}
 
 /* designing the store (questions from lecture) */
@@ -1294,10 +1296,42 @@ if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).t
   closeBtn.onclick = close;
   over.onclick = e => { if (e.target === over) close(); };
   el("vPipX").onclick = () => {
-    pip.hidden = true; loop.pause();
+    tuckAway();
     try { localStorage.setItem(KEY, "1"); } catch (e) {}
     el("introBtn").focus();
   };
+  // The corner clip shows for the first 15 seconds, then gets pulled into the header's Intro video button.
+  // The clock waits while the tab is in the background, while someone hovers or focuses the clip, and while the video is open.
+  const SHOW_MS = 15000, TICK_MS = 250;
+  let shown = 0, holding = false, clock = null;
+  const hold = on => () => { holding = on; };
+  pip.addEventListener("pointerenter", hold(true));
+  pip.addEventListener("pointerleave", hold(false));
+  pip.addEventListener("focusin", hold(true));
+  pip.addEventListener("focusout", hold(false));
+  function tuckAway() {
+    clearInterval(clock);
+    if (pip.hidden) return;
+    const btn = el("introBtn"), finish = () => {
+      pip.hidden = true; loop.pause();
+      btn.classList.remove("vcatch"); void btn.offsetWidth; btn.classList.add("vcatch");
+    };
+    if (still || !pip.animate) { finish(); return; }
+    const a = pip.getBoundingClientRect(), b = btn.getBoundingClientRect();
+    const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+    pip.style.pointerEvents = "none";
+    pip.animate([
+      { transform: "none", opacity: 1, offset: 0 },
+      { transform: "scale(1.08)", opacity: 1, offset: .16 },
+      { transform: `translate(${dx * .35}px, ${dy * .35}px) scale(.72, .9)`, opacity: 1, offset: .55 },
+      { transform: `translate(${dx}px, ${dy}px) scale(.08)`, opacity: .35, offset: 1 },
+    ], { duration: 720, easing: "cubic-bezier(.55,.05,.85,.35)", fill: "forwards" }).onfinish = finish;
+  }
+  if (!pip.hidden) clock = setInterval(() => {
+    if (document.hidden || holding || !over.hidden) return;
+    shown += TICK_MS;
+    if (shown >= SHOW_MS) tuckAway();
+  }, TICK_MS);
   document.addEventListener("keydown", e => {
     if (over.hidden) return;
     if (e.key === "Escape") close();
