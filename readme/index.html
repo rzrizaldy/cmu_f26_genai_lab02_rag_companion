@@ -6,9 +6,11 @@
   body { margin: 0; background: #fff; }
   @media (prefers-color-scheme: dark) { body { background: #0d1117; } }
   .markdown-body { box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+  .back { font-size: 14px; margin: 0 0 20px; }
 </style></head>
 <body><article class="markdown-body">
-<h1>Lab 02 · RAG: <em>How does a machine read your resume?</em></h1>
+<p class="back"><a href="../">← Back to the companion</a></p>
+<h1 id="lab-02-rag-how-does-a-machine-read-your-resume">Lab 02 · RAG: <em>How does a machine read your resume?</em></h1>
 <p>Generative AI Lab · Fall 2026 · Friday 6 November 2026 · prepared by Rizaldy Utomo (TA)</p>
 <p>We build a small retrieval-augmented generation (RAG) system over 424 real job postings, measure how well it works, and then use it on a resume. About 40 minutes, follow-along, three TODOs.</p>
 <blockquote>
@@ -16,8 +18,9 @@
 </blockquote>
 <p>Companion web app (same data, runs in your browser): <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/">https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/</a></p>
 <p>This guide is also online, so you can read it before anything is installed: <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/readme/">https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/readme/</a></p>
-<h2>Step 1: pick where to run it</h2>
-<h3>A. Google Colab in the browser (easiest)</h3>
+<p>Common questions are in the FAQ: <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/faq/">https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/faq/</a></p>
+<h2 id="step-1-pick-where-to-run-it">Step 1: pick where to run it</h2>
+<h3 id="a-google-colab-in-the-browser-easiest">A. Google Colab in the browser (easiest)</h3>
 <ol>
 <li>Download <code>lab02_starter.zip</code> from Canvas and unzip it. Keep the zip file too.</li>
 <li>Go to <a href="https://colab.research.google.com">colab.research.google.com</a>, choose <strong>File → Upload notebook</strong>, and pick <code>lab02_rag.ipynb</code> from the unzipped folder.</li>
@@ -25,7 +28,7 @@
 <li>Run the next cell (<em>Connect Gemma</em>). See Step 2 below.</li>
 </ol>
 <p>We tested this on Colab on 3 Nov 2026 (free CPU runtime, torch 2.11, transformers 5.22). Everything up to Trial 4.5 ran in about 2.5 minutes, and Trial 4.5, where two small Gemma models run on the Colab CPU, adds about 2 minutes.</p>
-<h3>B. Your laptop with VS Code, Cursor or Jupyter</h3>
+<h3 id="b-your-laptop-with-vs-code-cursor-or-jupyter">B. Your laptop with VS Code, Cursor or Jupyter</h3>
 <p>You need Python 3.10 or newer.</p>
 <pre><code class="language-bash">cd lab02_starter
 python -m venv .venv
@@ -34,11 +37,11 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </code></pre>
 <p>Open <code>lab02_rag.ipynb</code>, choose the <code>.venv</code> kernel, and run the cells from the top. The first cell only checks that the files are there.</p>
 <p>On Linux without a GPU you can save a 2 GB download by installing the CPU version of PyTorch first: <code>pip install torch --index-url <a href="https://download.pytorch.org/whl/cpu">https://download.pytorch.org/whl/cpu</a></code>.</p>
-<h3>C. VS Code connected to a Colab runtime (Colab extension)</h3>
+<h3 id="c-vs-code-connected-to-a-colab-runtime-colab-extension">C. VS Code connected to a Colab runtime (Colab extension)</h3>
 <p>The code runs there, but the extension can't mount Google Drive, and getting the zip onto the remote runtime is more fiddly than in the browser. Use A or B unless you already know this setup.</p>
-<h3>No Python at all?</h3>
+<h3 id="no-python-at-all">No Python at all?</h3>
 <p>Open the companion web app linked above. It runs the same chunking, embedding and matching in your browser, and you can try your own resume there.</p>
-<h2>Step 2: connect Gemma (the model that writes answers)</h2>
+<h2 id="step-2-connect-gemma-the-model-that-writes-answers">Step 2: connect Gemma (the model that writes answers)</h2>
 <p>The lab uses two free Gemma models from Google:</p>
 <table>
 <thead>
@@ -99,11 +102,11 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </tbody>
 </table>
 <p>Never paste a key into a code cell, and never upload <code>.env</code> anywhere.</p>
-<h2>Trying your own resume</h2>
+<h2 id="trying-your-own-resume">Trying your own resume</h2>
 <p>Keep in mind that this score only shows how close the text of your resume is to the text of a posting. It may not reflect how HR teams or ATS software actually screen resumes.</p>
 <p>At the end of step 6 the notebook can match your own resume against the 424 postings. You can give it a PDF in two ways on Colab: drag the file into the <strong>Files</strong> pane (the folder icon on the left) and write its name in <code>MY_RESUME_FILE</code>, or mount your Google Drive and write the full path, such as <code>/content/drive/MyDrive/my_resume.pdf</code>. On a laptop, put the PDF in the <code>lab02_starter</code> folder. You can also paste the text instead. The matching runs inside the notebook, so the resume is not sent to Gemma. If you'd rather keep it off Colab entirely, the companion app reads the PDF inside your browser.</p>
-<h2>Questions from lecture: designing the vector store</h2>
-<p>Section 7 of the notebook and the "Designing the store" page in the companion app answer three questions students asked in lecture, using our own postings. It takes a few minutes and at most two Gemma calls.</p>
+<h2 id="questions-from-lecture-designing-the-vector-store">Questions from lecture: designing the vector store</h2>
+<p>Section 7 of the notebook answers three questions students asked in lecture, using our own postings. The companion app has the same answers inside steps 2 and 3, and the <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/faq/">FAQ</a> has the details. It takes a few minutes and at most two Gemma calls.</p>
 <table>
 <thead>
 <tr>
@@ -131,14 +134,14 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </tbody>
 </table>
 <p>These results come from our small dataset and from 13 question pairs written by hand, so please test on your own data before relying on any of them.</p>
-<h2>Optional: the Gemma copy in the class Google Drive</h2>
+<h2 id="optional-the-gemma-copy-in-the-class-google-drive">Optional: the Gemma copy in the class Google Drive</h2>
 <p>Our class Google Drive has a copy of Gemma 3 270M (folder <code>gemma-3-270m-it</code>, you need your class account to open it). Trial 4.5 in the notebook can load it from there:</p>
 <ol>
 <li>In Google Drive, open the shared folder, then right click → <strong>Organize → Add shortcut → My Drive</strong>.</li>
 <li>In the Trial 4.5 cell, set <code>USE_CLASS_DRIVE = True</code> and run it. Colab asks to connect to your Google Drive.</li>
 </ol>
 <p>This only works in Colab in the browser. Everywhere else, the same model downloads from Hugging Face (<code>unsloth/gemma-3-270m-it</code>, same weights, no login), which is also what happens if you leave <code>USE_CLASS_DRIVE = False</code>.</p>
-<h2>What's in this folder</h2>
+<h2 id="whats-in-this-folder">What's in this folder</h2>
 <table>
 <thead>
 <tr>
@@ -154,6 +157,10 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 <tr>
 <td><code>ragkit.py</code></td>
 <td>all the RAG code the notebooks call, written to be read</td>
+</tr>
+<tr>
+<td><code>FAQ.md</code></td>
+<td>common questions about RAG, models, your resume and the data</td>
 </tr>
 <tr>
 <td><code>requirements.txt</code></td>
@@ -201,7 +208,7 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </tr>
 </tbody>
 </table>
-<h2>Troubleshooting</h2>
+<h2 id="troubleshooting">Troubleshooting</h2>
 <table>
 <thead>
 <tr>
@@ -256,6 +263,6 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </tr>
 </tbody>
 </table>
-<h2>Data credits</h2>
+<h2 id="data-credits">Data credits</h2>
 <p>LinkedIn Job Postings 2023-24 by Arsh Koneru and Zoey Yu Zou (Kaggle, CC BY-SA 4.0), through the <code>xanderios/linkedin-job-postings</code> Hugging Face mirror · USAJOBS postings through <code>loyoladatamining/usajobs</code> (US government work) · resume and job fit labels from <code>cnamuangtoun/resume-job-description-fit</code> · sample resumes from the Kaggle Resume Dataset. The postings were cleaned and re-sectioned for teaching; this subset is shared under CC BY-SA 4.0.</p>
 </article></body></html>

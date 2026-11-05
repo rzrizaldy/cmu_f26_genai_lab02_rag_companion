@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 02 RAG FAQ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+<style>
+  body { margin: 0; background: #fff; }
+  @media (prefers-color-scheme: dark) { body { background: #0d1117; } }
+  .markdown-body { box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+  .back { font-size: 14px; margin: 0 0 20px; }
+</style></head>
+<body><article class="markdown-body">
+<p class="back"><a href="../">← Back to the companion</a></p>
+<h1 id="lab-02-faq">Lab 02 FAQ</h1>
+<p>Common questions about the lab. The numbers come from our own run in November 2026, on 424 job postings with EmbeddingGemma at 256 numbers per chunk. Our test set is small, so please treat small differences as hints.</p>
+<p>This resume example may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.</p>
+<div class="toc">
+<ul>
+<li><a href="#lab-02-faq">Lab 02 FAQ</a><ul>
+<li><a href="#questions-from-lecture">Questions from lecture</a></li>
+<li><a href="#concepts">Concepts</a></li>
+<li><a href="#models-and-cost">Models and cost</a></li>
+<li><a href="#your-resume">Your resume</a></li>
+<li><a href="#data">Data</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<h2 id="questions-from-lecture">Questions from lecture</h2>
+<h3 id="what-information-should-we-embed">What information should we embed?</h3>
+<p>Embed the text people would describe in words, like duties and skills, with a little context so each piece makes sense on its own. Exact facts like dates, places and salary work better as fields you can filter on.</p>
+<table>
+<thead>
+<tr>
+<th>What each vector stands for</th>
+<th>Vectors</th>
+<th>Hit@5</th>
+<th>MRR</th>
+<th>95% range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chunk + job title + section name</td>
+<td>2,841</td>
+<td>0.98</td>
+<td>0.93</td>
+<td>0.86 to 0.98</td>
+</tr>
+<tr>
+<td>Same, without benefits and other boilerplate</td>
+<td>2,434</td>
+<td>0.98</td>
+<td>0.93</td>
+<td>0.86 to 0.98</td>
+</tr>
+<tr>
+<td>Chunk text only</td>
+<td>2,841</td>
+<td>0.94</td>
+<td>0.88</td>
+<td>0.79 to 0.95</td>
+</tr>
+<tr>
+<td>Whole posting, one vector each</td>
+<td>424</td>
+<td>0.94</td>
+<td>0.80</td>
+<td>0.71 to 0.88</td>
+</tr>
+<tr>
+<td>Job title only, one vector each</td>
+<td>424</td>
+<td>0.77</td>
+<td>0.49</td>
+<td>0.40 to 0.59</td>
+</tr>
+</tbody>
+</table>
+<p>The second row ties with the first only because none of our 48 test questions asks about benefits. A test set can only protect you against the kinds of questions it contains.</p>
+<p>The text you compare and the text you give back can be different. For example, you can match on a small chunk and give the LLM the whole section around it. More advanced options include <a href="https://arxiv.org/abs/1904.08375">doc2query</a>, which stores questions a chunk could answer, and <a href="https://arxiv.org/abs/2212.10496">HyDE</a>, which searches with an LLM's guess of the answer. We did not test these.</p>
+<h3 id="if-an-llm-generates-a-response-can-we-store-it">If an LLM generates a response, can we store it?</h3>
+<p>Yes. This is usually called a semantic cache. Embed the question, keep the answer beside it, label it as generated, and record which documents it came from.</p>
+<ul>
+<li><strong>The question becomes the vector.</strong> A new question scored about 0.93 to 0.95 against an old question, and only 0.78 to 0.80 against the old answer.</li>
+<li><strong>Keep generated answers apart from the source documents.</strong> When we saved one wrong answer among the postings, it ranked first for a later question (0.81, while the best real posting had 0.55). The model would then cite its own mistake.</li>
+<li><strong>Set the threshold high, and don't rely on it alone.</strong> "Remote" vs "on-site" questions scored 0.92, above two real paraphrases at 0.84 and 0.80. At a threshold of 0.90, 3 of 5 good reuses passed and 1 of 8 wrong reuses got through. I wrote these 13 pairs by hand to show the problem, so please test on your own questions.</li>
+<li><strong>Never share personal answers.</strong> An answer built from one person's resume must not come back for someone else.</li>
+</ul>
+<h3 id="how-do-time-and-place-fit-in">How do time and place fit in?</h3>
+<p>Store them as fields and check them with plain code before reusing an answer. Similarity can't do this job. The place often isn't in the words of the question at all, and even when it is, questions about Texas and California still scored 0.80.</p>
+<p>Our small store reuses an answer only when all four of these pass:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The question is close enough</td>
+<td>Same meaning</td>
+</tr>
+<tr>
+<td>The place is the same</td>
+<td>The answer was built from postings in that place</td>
+</tr>
+<tr>
+<td>The answer is still valid</td>
+<td>It expires when its first source posting does</td>
+</tr>
+<tr>
+<td>The model and prompt are the same</td>
+<td>A new model or prompt should write a new answer</td>
+</tr>
+</tbody>
+</table>
+<p>These checks still miss some cases. "Which remote analyst jobs ask for SQL?" scored 0.94 against "Which analyst jobs ask for SQL?" and passed all four, and reusing that answer would be wrong. Conditions like "remote" or "entry level" need to become fields too, or those questions should skip the store.</p>
+<p>The source documents need the same care. For a question about jobs in Texas, search alone returned 0 of 10 chunks from Texas, and a filter returned 10 of 10. A filter can't create jobs that aren't there, though, so it is still worth checking the scores.</p>
+<p>Dates can also be missing. All 40 of our federal postings look open forever, only because our download has no closing date for them.</p>
+<h3 id="should-we-filter-by-date-or-give-new-records-a-bonus">Should we filter by date, or give new records a bonus?</h3>
+<p>Filter when old information is simply wrong, like a closed job. Use a bonus when old information is still somewhat useful. We tried <code>final score = similarity + weight × 0.5 ^ (age in days / half life)</code>. You can try different settings in Trial 7.3 of the notebook.</p>
+<h2 id="concepts">Concepts</h2>
+<h3 id="what-is-rag-in-short">What is RAG, in short?</h3>
+<p>We find the few most relevant pieces of our own documents, paste them into the prompt, and tell the model to answer only from them and to cite them.</p>
+<h3 id="how-is-rag-different-from-fine-tuning">How is RAG different from fine-tuning?</h3>
+<p>RAG changes what the model reads, and fine-tuning changes the model itself. RAG is cheaper, you can update it by replacing a document, and you can check the answers through the citations. Fine-tuning works better when you want a certain style or format.</p>
+<h3 id="embeddinggemma-reads-2048-tokens-why-do-we-still-chunk">EmbeddingGemma reads 2,048 tokens. Why do we still chunk?</h3>
+<p>A whole posting would fit, but then one vector has to stand for everything in it, and a small requirement like "Experience with Airtable" almost disappears. Small chunks keep these details visible. Shorter context is also cheaper and more focused when we paste it into Gemma's prompt.</p>
+<h3 id="what-is-an-embedding">What is an embedding?</h3>
+<p>A list of numbers from a model that was trained so texts with similar meaning point in similar directions. "ICU nurse" and "critical care RN" share no words, but they score 0.87.</p>
+<h3 id="why-does-baking-bread-still-score-055-against-python-and-pandas">Why does "baking bread" still score 0.55 against "Python and pandas"?</h3>
+<p>Every embedding model has its own scale. EmbeddingGemma puts most text pairs between about 0.5 and 0.9. What matters is the order, so we compare scores with each other and don't read them as percentages.</p>
+<h3 id="why-do-5-years-and-entry-level-look-related">Why do "5+ years" and "entry level" look related?</h3>
+<p>Embeddings capture the topic (both are about experience) much better than logic, numbers or negation. This is a known weakness, and it's one reason people add rerankers or an LLM check.</p>
+<h3 id="what-does-it-mean-to-keep-256-of-768-numbers">What does it mean to keep 256 of 768 numbers?</h3>
+<p>EmbeddingGemma was trained so the first 256, or even the first 128, numbers also work on their own, like Russian nesting dolls. This is called Matryoshka. The files are 3 times smaller and search is faster. In our test, MRR is 0.93 with 256 numbers and 0.95 with all 768.</p>
+<h3 id="cosine-dot-product-or-euclidean">Cosine, dot product or Euclidean?</h3>
+<p>Cosine looks only at the angle. Dot product is the angle times the lengths. Euclidean is the straight-line distance. When all vectors have length 1, as ours do, the three give the same ranking.</p>
+<h3 id="what-are-hitk-and-mrr">What are Hit@k and MRR?</h3>
+<p>Hit@5 is the share of questions where the right posting appears in the top 5. MRR is the average of 1 divided by the rank of the right posting: rank 1 gives 1.0, rank 2 gives 0.5, and not found gives 0.</p>
+<h3 id="what-is-the-95-range">What is the 95% range?</h3>
+<p>We resample the 48 questions with replacement 2,000 times and compute the score each time. The range covers the middle 95% of those scores. If two ranges overlap a lot, the difference could be luck.</p>
+<h3 id="why-no-faiss-or-vector-database">Why no FAISS or vector database?</h3>
+<p>2,841 vectors with 256 numbers each take less than 1 MB, and a numpy dot product takes a few milliseconds. FAISS, pgvector or Pinecone become useful with millions of vectors. The math is the same.</p>
+<h3 id="what-are-hybrid-search-and-reranking">What are hybrid search and reranking?</h3>
+<p>Hybrid search usually means keyword search plus vector search, with the scores combined. Keywords catch exact terms like product names and codes, which embeddings tend to blur. A reranker is a second model that reads the question and a chunk together and scores the top results again. It is slower and more accurate.</p>
+<h3 id="does-the-model-really-use-only-the-context">Does the model really use only the context?</h3>
+<p>We instruct it to, and we ask for <code>[n]</code> citations so we can check. RAG lowers the number of made-up answers, but some can still happen, so it's worth opening the cited chunk.</p>
+<h2 id="models-and-cost">Models and cost</h2>
+<h3 id="is-gemma-really-free">Is Gemma really free?</h3>
+<p>Yes. On the Gemini API pricing page, Gemma is listed as free with no paid tier, so a Gemma call can't be billed. It does have rate limits. Create your key in a new project without billing, because a key from a project with billing can return error <code>402</code> even for Gemma.</p>
+<h3 id="is-there-a-way-to-run-the-lab-with-no-key">Is there a way to run the lab with no key?</h3>
+<p>Yes. If you do nothing, every Gemma cell shows the answer from the TA's run, marked as saved. Or use <code>rk.llm.setup("local")</code>, which runs Gemma 3 1B inside the notebook. That is about a 2 GB download, and the answers are clearly weaker.</p>
+<h3 id="where-does-my-own-key-go">Where does my own key go?</h3>
+<p>Into a hidden box. It stays in memory for that session and isn't written into the notebook or its outputs. Saving it as <code>GEMINI_API_KEY</code> in Colab Secrets or in <code>.env</code> just skips the box next time. Never paste a key into a code cell.</p>
+<h3 id="what-about-the-shared-class-key">What about the shared class key?</h3>
+<p>It allows at most 40 calls per session, it's shared by the whole class, and it will be deleted on Fri 13 Nov 2026.</p>
+<h2 id="your-resume">Your resume</h2>
+<h3 id="is-my-resume-uploaded-anywhere">Is my resume uploaded anywhere?</h3>
+<p>The companion app reads PDF and DOCX files and computes the embeddings inside your browser tab. The only downloads are the libraries and the model, and you can check this in DevTools under Network. In the notebook, the matching runs on your laptop or your Colab runtime and doesn't send the resume to Gemma.</p>
+<h3 id="is-the-score-my-chance-of-getting-the-job">Is the score my chance of getting the job?</h3>
+<p>No. It measures how close the meaning of your words is to the posting's words. It can't see formatting, references, interviews or you as a person, and postings themselves can be biased. On 300 labeled resume and job pairs, "No Fit" pairs scored about the same as "Good Fit" pairs (both about 0.65).</p>
+<h3 id="should-i-add-the-weakest-link-words-to-my-resume">Should I add the weakest-link words to my resume?</h3>
+<p>Only if they are true. They are most useful for noticing things you have done but didn't write clearly.</p>
+<h3 id="why-did-a-sample-resume-match-a-strange-job">Why did a sample resume match a strange job?</h3>
+<p>When nothing fits well, the top match is only the best of the weak ones. Our medical billing sample matched "Graphic Designer" at 0.62, because our postings have no billing jobs and that resume lists graphic design. It's worth looking at the score.</p>
+<h2 id="data">Data</h2>
+<h3 id="where-does-the-data-come-from">Where does the data come from?</h3>
+<p>LinkedIn Job Postings 2023-24 by Arsh Koneru and Zoey Yu Zou (Kaggle, CC BY-SA 4.0), USAJOBS postings from March 2026, and sample resumes from the Kaggle Resume Dataset, which are already anonymized. The README has the full credits.</p>
+<h3 id="the-linkedin-data-is-from-2023-is-that-a-problem">The LinkedIn data is from 2023. Is that a problem?</h3>
+<p>For learning RAG it's fine, because the language of job requirements changes slowly. For a real job search it is a problem, since those postings are closed.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="something-went-wrong-in-the-notebook">Something went wrong in the notebook</h3>
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>429</code> or "rate-limited"</td>
+<td>The shared key is busy. Wait 30 seconds, or use your own key.</td>
+</tr>
+<tr>
+<td><code>402</code></td>
+<td>Your key's project has billing. Make a new key in a new project.</td>
+</tr>
+<tr>
+<td>"you reached the 40-call limit"</td>
+<td>Restart the runtime and run the first cells again.</td>
+</tr>
+<tr>
+<td>"waiting for EmbeddingGemma"</td>
+<td>Normal in the first minute. The cell continues by itself.</td>
+</tr>
+<tr>
+<td>"Your zip is older than this notebook"</td>
+<td>Download the newest <code>lab02_starter.zip</code> and start again.</td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/readme/">lab guide</a> has the full list.</p>
+</article></body></html>

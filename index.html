@@ -310,8 +310,10 @@ footer p{margin:4px 0;max-width:110ch}
 .st-job dl{margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
 .st-job dt{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:6px}
 .st-job dd{margin:0;overflow-wrap:anywhere}
-.st-q{margin:22px 0 8px;font-size:17px;font-weight:700;font-stretch:95%}
-.st-q span{color:var(--muted);font-weight:600;margin-right:6px}
+.st-section{margin-top:26px;border-top:1px solid var(--rule);padding-top:16px;scroll-margin-top:12px}
+.st-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lantern)}
+.st-q{margin:2px 0 10px;font-size:19px;font-weight:800;font-stretch:95%}
+.byline a.theme-btn{flex:none;margin-left:8px;text-decoration:none}
 .st-range{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,2fr) 44px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule);font-size:13.5px}
 .st-range:first-of-type{border-top:0}
 .st-track{position:relative;height:14px;background:var(--wash);border-radius:7px}
@@ -346,6 +348,8 @@ footer p{margin:4px 0;max-width:110ch}
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 21 8 12 13 3 8Z" fill="#e8892b"/><path d="M3 11.5 12 16.5 21 11.5" fill="none" stroke="#9e9ad0" stroke-width="1.8"/><path d="M3 15.5 12 20.5 21 15.5" fill="none" stroke="#6a6fc4" stroke-width="1.8"/></svg>
     <span><b>CMU Generative AI Lab · F26 · Lab 02</b> · prepared by Rizaldy Utomo · 6 Nov 2026</span>
     <button class="theme-btn" id="introBtn" type="button" aria-label="Watch the 2-minute intro video, with sound">▶ Intro video</button>
+    <a class="theme-btn" href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/readme/" target="_blank" rel="noopener">README</a>
+    <a class="theme-btn" href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/faq/" target="_blank" rel="noopener">FAQ</a>
     <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light or dark mode">◐ Light / dark</button>
   </div>
   <div class="hero">
@@ -354,7 +358,7 @@ footer p{margin:4px 0;max-width:110ch}
       <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning, so it lands on a shared "meaning space" next to similar pieces. That part is built once. Then, for every question, each piece is compared with the question and only the five closest go to the LLM (Gemma), which answers from them. Your resume goes through its own small funnel into the same space, so we can see which job pieces sit closest to yours. Click any part of the picture, or use the buttons below.</p>
       <p class="note" id="atsNoteTop" style="max-width:62ch;margin:8px 0 0">This example may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.</p>
       <div class="stepnow" id="stepNow"><div class="k">Step 1 of 5</div><div class="t">Chunk</div></div>
-      <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button><button class="chip" id="storeBtn">Questions from lecture: designing the store</button></div>
+      <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button><button class="chip" data-q="1">Questions from lecture</button></div>
       <div class="modelcard" id="modelCard">
         <div><b>EmbeddingGemma</b> turns text into numbers <b>inside your browser</b>. The first time, it downloads about <b>200 MB</b>. After that your browser keeps it, so it loads fast. <span id="modelStatus">Not loaded yet.</span></div>
         <button class="btn" id="loadModel">Load model</button>
@@ -439,6 +443,23 @@ footer p{margin:4px 0;max-width:110ch}
       <p class="note" id="mapNote"></p>
     </div>
   </div>
+  <section class="st-section" id="qEmbed">
+    <div class="st-kicker">Question from lecture 1 of 3</div>
+    <h3 class="st-q">What should we embed?</h3>
+    <p class="note" style="margin:0 0 12px;max-width:72ch">A record in a vector store holds more than a vector. Each kind of field has its own job. The scores below use MRR, which step 4 explains. For now, higher is better.</p>
+  <div class="card">
+    <div class="label">One real record has four kinds of fields</div>
+    <div class="st-jobs" id="stRecord"></div>
+  </div>
+
+    <div style="height:14px"></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
+    <div class="card"><div class="label">Same 48 test questions, five choices (MRR with its 95% range)</div><div id="stChoices"></div></div>
+    <div class="callout" id="stChoicesNote" style="align-self:start"></div>
+  </div>
+
+    <p class="note" style="margin:12px 0 0">The next two questions come up in step 3. <button class="btn ghost" data-q="2" style="padding:4px 10px">Go to question 2 →</button></p>
+  </section>
   <div class="panel-nav"><button class="btn ghost" data-go="1">← Back: chunk</button><button class="btn" data-go="3">Next: search and answer →</button></div>
 </section>
 
@@ -472,7 +493,42 @@ footer p{margin:4px 0;max-width:110ch}
       </details>
     </div>
   </div>
-  <p class="callout" style="margin:16px 0 0">Students asked what to embed, whether LLM answers can be stored, and how to handle time and place. <button class="btn ghost" id="storeBtn2" style="margin-left:6px;padding:4px 10px">See the answers with our data</button></p>
+  <section class="st-section" id="qStored">
+    <div class="st-kicker">Question from lecture 2 of 3</div>
+    <h3 class="st-q">Can we store a response the LLM wrote?</h3>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)">
+    <div class="side">
+      <div class="card" id="stStoreNote"></div>
+    </div>
+    <div class="card">
+      <div class="label">How close is close enough? 13 pairs of questions</div>
+      <label class="slider">Reuse a stored answer when similarity is at least<output id="stThOut">0.90</output><input type="range" id="stTh" min="0.75" max="1" step="0.01" value="0.90"></label>
+      <div class="st-count"><div class="stat"><div class="k">Good reuses</div><div class="v" id="stGood">–</div><div class="s">the old answer still works</div></div><div class="stat"><div class="k">Wrong reuses</div><div class="v" id="stBad">–</div><div class="s">the question needed a new answer</div></div></div>
+      <div class="st-strip" id="stStrip" role="img" aria-label="Similarity of each question pair. The table below lists the same values."></div>
+      <div class="st-axis" id="stAxis"></div>
+      <div class="legend" style="margin:10px 0"><span class="pill"><i style="background:var(--series);border-radius:50%"></i>Same meaning, old answer works</span><span class="pill"><i style="background:var(--lantern);border-radius:1px;transform:rotate(45deg)"></i>Needs a new answer</span></div>
+      <p class="note" id="stPick" style="min-height:2.6em;margin:4px 0">Click a mark, or read the full list below.</p>
+      <details><summary>All 13 pairs</summary><div class="scroll" style="max-height:300px"><table class="qtable st-pairs" id="stPairs"></table></div></details>
+      <p class="note" style="margin:10px 0 0">I wrote these pairs by hand to show the problem, so read them as an illustration. You can test your own pair with "Are these two close?" in step 2.</p>
+    </div>
+  </div>
+
+  </section>
+  <section class="st-section" id="qPlace">
+    <div class="st-kicker">Question from lecture 3 of 3</div>
+    <h3 class="st-q">How do time and place fit in?</h3>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)">
+    <div class="side">
+      <div class="card" id="stStored"></div>
+      <div class="callout">Similarity can't check a place or a date, because these often don't appear in the question at all. They come from the user's request or session, and plain code compares them with fields in the record. The answer expires when its first source posting does.</div>
+    </div>
+    <div class="card">
+      <div class="label">A new request comes in. Pick one.</div>
+      <div class="chips" id="stChips"></div>
+      <div id="stGates" style="margin-top:12px"></div>
+    </div>
+  </div>
+  </section>
   <div class="panel-nav"><button class="btn ghost" data-go="2">← Back: embed</button><button class="btn" data-go="4">Next: check if it works →</button></div>
 </section>
 
@@ -540,52 +596,6 @@ footer p{margin:4px 0;max-width:110ch}
   <div class="panel-nav"><button class="btn ghost" data-go="4">← Back: evaluate</button><button class="btn ghost" data-go="2">See your resume on the big map →</button></div>
 </section>
 
-<!-- ============================== DESIGNING THE STORE ============================== -->
-<section class="panel" id="pStore">
-  <div class="step-head"><h2>Designing the store</h2><p>Three questions students asked in lecture, answered with our 424 postings. The numbers come from section 7 of the notebook, so this page calls no model.</p></div>
-  <div class="card">
-    <div class="label">One real record has four kinds of fields</div>
-    <div class="st-jobs" id="stRecord"></div>
-  </div>
-
-  <h3 class="st-q"><span>1</span>What should we embed?</h3>
-  <div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
-    <div class="card"><div class="label">Same 48 test questions, five choices (MRR with its 95% range)</div><div id="stChoices"></div></div>
-    <div class="callout" id="stChoicesNote" style="align-self:start"></div>
-  </div>
-
-  <h3 class="st-q"><span>2</span>Can we store a response the LLM wrote?</h3>
-  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)">
-    <div class="side">
-      <div class="card" id="stStoreNote"></div>
-    </div>
-    <div class="card">
-      <div class="label">How close is close enough? 13 pairs of questions</div>
-      <label class="slider">Reuse a stored answer when similarity is at least<output id="stThOut">0.90</output><input type="range" id="stTh" min="0.75" max="1" step="0.01" value="0.90"></label>
-      <div class="st-count"><div class="stat"><div class="k">Good reuses</div><div class="v" id="stGood">–</div><div class="s">the old answer still works</div></div><div class="stat"><div class="k">Wrong reuses</div><div class="v" id="stBad">–</div><div class="s">the question needed a new answer</div></div></div>
-      <div class="st-strip" id="stStrip" role="img" aria-label="Similarity of each question pair. The table below lists the same values."></div>
-      <div class="st-axis" id="stAxis"></div>
-      <div class="legend" style="margin:10px 0"><span class="pill"><i style="background:var(--series);border-radius:50%"></i>Same meaning, old answer works</span><span class="pill"><i style="background:var(--lantern);border-radius:1px;transform:rotate(45deg)"></i>Needs a new answer</span></div>
-      <p class="note" id="stPick" style="min-height:2.6em;margin:4px 0">Click a mark, or read the full list below.</p>
-      <details><summary>All 13 pairs</summary><div class="scroll" style="max-height:300px"><table class="qtable st-pairs" id="stPairs"></table></div></details>
-      <p class="note" style="margin:10px 0 0">I wrote these pairs by hand to show the problem, so read them as an illustration. You can test your own pair with "Are these two close?" in step 2.</p>
-    </div>
-  </div>
-
-  <h3 class="st-q"><span>3</span>How do time and place fit in?</h3>
-  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)">
-    <div class="side">
-      <div class="card" id="stStored"></div>
-      <div class="callout">Similarity can't check a place or a date, because these often don't appear in the question at all. They come from the user's request or session, and plain code compares them with fields in the record. The answer expires when its first source posting does.</div>
-    </div>
-    <div class="card">
-      <div class="label">A new request comes in. Pick one.</div>
-      <div class="chips" id="stChips"></div>
-      <div id="stGates" style="margin-top:12px"></div>
-    </div>
-  </div>
-  <div class="panel-nav"><button class="btn ghost" data-go="3">← Back: search and answer</button><button class="btn" data-go="4">Next: check if it works →</button></div>
-</section>
 </main>
 
 <footer class="wrap">
@@ -1149,15 +1159,17 @@ placeStack(1);
 requestAnimationFrame(drawFunnel);
 /* ================================================================ DESIGNING THE STORE */
 /*STORE_DATA*/const STORE = {"choices":[{"name":"Chunk + job title + section name","vectors":2841,"hit":0.98,"mrr":0.93,"lo":0.86,"hi":0.98},{"name":"Same, without benefits and other boilerplate","vectors":2434,"hit":0.98,"mrr":0.93,"lo":0.86,"hi":0.98},{"name":"Chunk text only","vectors":2841,"hit":0.94,"mrr":0.88,"lo":0.79,"hi":0.95},{"name":"Whole posting, one vector each","vectors":424,"hit":0.94,"mrr":0.8,"lo":0.71,"hi":0.88},{"name":"Job title only, one vector each","vectors":424,"hit":0.77,"mrr":0.49,"lo":0.4,"hi":0.59}],"pairs":[{"sim":0.972,"same":true,"kind":"no","a":"What do data analyst jobs usually require?","b":"What are the usual requirements for a data analyst?"},{"sim":0.97,"same":true,"kind":"no","a":"What skills do I need for a marketing manager role?","b":"Which skills should a marketing manager have?"},{"sim":0.942,"same":true,"kind":"no","a":"Which jobs ask for Tableau or Power BI?","b":"What roles want Power BI or Tableau skills?"},{"sim":0.921,"same":false,"kind":"different condition","a":"Which remote jobs ask for Python?","b":"Which on-site jobs ask for Python?"},{"sim":0.888,"same":false,"kind":"different time","a":"Which analyst jobs were posted this week?","b":"Which analyst jobs were posted in 2023?"},{"sim":0.879,"same":false,"kind":"different time","a":"Which federal jobs are open today?","b":"Which federal jobs were open last year?"},{"sim":0.878,"same":false,"kind":"different condition","a":"Which entry-level jobs ask for SQL?","b":"Which senior jobs ask for SQL?"},{"sim":0.858,"same":false,"kind":"different condition","a":"Which jobs require a security clearance?","b":"Which jobs do not require a security clearance?"},{"sim":0.846,"same":false,"kind":"different place","a":"What is the pay for a nurse in Ohio?","b":"What is the pay for a nurse in New York?"},{"sim":0.836,"same":true,"kind":"no","a":"Which nursing jobs need an ICU background?","b":"Which RN roles want critical care experience?"},{"sim":0.828,"same":false,"kind":"different place","a":"Which data analyst jobs are in Pittsburgh?","b":"Which data analyst jobs are in Philadelphia?"},{"sim":0.803,"same":false,"kind":"different place","a":"Which data analyst jobs are in Texas?","b":"Which data analyst jobs are in California?"},{"sim":0.799,"same":true,"kind":"no","a":"Which jobs ask for Tableau or Power BI?","b":"Do any postings need dashboard tools like Tableau?"}],"key":{"question":0.95,"answer":0.78},"mix":{"generated":0.81,"real":0.55,"top":"AI-generated answer"},"stored":{"question":"Which analyst jobs ask for SQL?","state":"CA","created":"2023-11-15","valid_until":"2023-12-02","answer":"The Business Intelligence Analyst (Mid-Senior level) position asks for experience creating and maintaining business-critical data warehouse tables using SQL [4].","sources":4},"scenarios":[{"label":"Same meaning, same place","q":"What analyst roles want SQL?","state":"CA","today":"2023-11-15","sim":0.947,"sameModel":true},{"label":"Same words, a different place","q":"Which analyst jobs ask for SQL?","state":"TX","today":"2023-11-15","sim":1.0,"sameModel":true},{"label":"Same words, two months later","q":"Which analyst jobs ask for SQL?","state":"CA","today":"2024-01-15","sim":1.0,"sameModel":true},{"label":"Same words, a newer model or prompt","q":"Which analyst jobs ask for SQL?","state":"CA","today":"2023-11-15","sim":1.0,"sameModel":false},{"label":"Looser wording, same place","q":"Do analyst jobs require SQL skills?","state":"CA","today":"2023-11-15","sim":0.93,"sameModel":true},{"label":"A new condition in the words","q":"Which remote analyst jobs ask for SQL?","state":"CA","today":"2023-11-15","sim":0.941,"sameModel":true}],"record":{"title":"Business Intelligence Analyst","section":"requirements","text":"Requirements:\nBS degree in a quantitative discipline4+ years of experience working with data in a business setting, including data management, data ar","level":"Mid-Senior level","remote":false,"family":"Data & Analytics","state":"CA","listed":"2023-11-03","expires":"2023-12-02","job_id":"li-3754511985"}};/*END_STORE_DATA*/
-let storeReady = false, stScenario = 0;
-function showStore(scroll = true) {
-  $$(".panel").forEach(p => p.classList.toggle("on", p.id === "pStore"));
-  if (!storeReady) { storeReady = true; renderStore(); }
-  try { history.replaceState(null, "", "#store"); } catch {}
-  if (scroll) $("#pStore").scrollIntoView({ behavior: "smooth", block: "start" });
+let stScenario = 0;
+const QUESTION_AT = { 1: [2, "qEmbed"], 2: [3, "qStored"], 3: [3, "qPlace"] };
+function showQuestion(n) {
+  const [step, id] = QUESTION_AT[n];
+  go(step);
+  const card = document.getElementById(id);
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  // the first visit to a step fills in its results and map, which pushes the card down, so follow it once they land
+  setTimeout(() => card.scrollIntoView({ behavior: "smooth", block: "start" }), 700);
 }
-$("#storeBtn").onclick = () => showStore();
-$("#storeBtn2").onclick = () => showStore();
+$$("[data-q]").forEach(b => b.onclick = () => showQuestion(+b.dataset.q));
 function renderStore() {
   const S = STORE, r = S.record;
   const field = (k, v) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`;
@@ -1223,7 +1235,8 @@ function renderStore() {
   drawTh();
 }
 
-const fromHash = () => { if (location.hash === "#store") { showStore(false); return; } const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
+renderStore();
+const fromHash = () => { const q = { "#store": 1, "#q1": 1, "#q2": 2, "#q3": 3 }[location.hash]; if (q) { showQuestion(q); return; } const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
 fromHash(); addEventListener("hashchange", fromHash);
 if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).then(k => { if (k.some(r => r.url.includes("embeddinggemma"))) getModel().catch(() => {}); }).catch(() => {});
 </script>
