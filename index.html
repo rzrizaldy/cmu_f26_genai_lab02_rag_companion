@@ -300,6 +300,42 @@ footer p{margin:4px 0;max-width:110ch}
 @media (max-width:640px){.byline{flex-wrap:wrap}.byline span{flex:1 1 calc(100% - 60px)}.byline #introBtn{margin-left:0}.vpip{right:18px;bottom:18px;width:76px;height:76px}.vpip-play{border-radius:16px}.vbar b{font-size:13px}}
 @media (prefers-reduced-motion:reduce){.vpip,.vpip-play{transition:none}.vpip:hover{transform:none}.vstage{animation:none}}
 @media print{.vpip{display:none}}
+
+/* designing the store (questions from lecture) */
+.st-jobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.st-job{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;background:var(--paper);min-width:0}
+.st-job .tag{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:2px 8px;color:var(--ink)}
+.st-job dl{margin:8px 0 0;font-size:12.5px;color:var(--ink-2)}
+.st-job dt{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:6px}
+.st-job dd{margin:0;overflow-wrap:anywhere}
+.st-q{margin:22px 0 8px;font-size:17px;font-weight:700;font-stretch:95%}
+.st-q span{color:var(--muted);font-weight:600;margin-right:6px}
+.st-range{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,2fr) 44px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--rule);font-size:13.5px}
+.st-range:first-of-type{border-top:0}
+.st-track{position:relative;height:14px;background:var(--wash);border-radius:7px}
+.st-track i{position:absolute;top:0;bottom:0;background:var(--ramp-2);border-radius:7px}
+.st-track b{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--series);border:2px solid var(--card)}
+.st-range .v{font-weight:700;text-align:right}
+.st-strip{position:relative;height:104px;margin:6px 8px 4px;border-bottom:1px solid var(--axis)}
+.st-dot{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid var(--card);padding:0;cursor:pointer}
+.st-dot.same{border-radius:50%;background:var(--series)}
+.st-dot.diff{background:var(--lantern);transform:rotate(45deg);border-radius:2px}
+.st-dot:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.st-line{position:absolute;top:-4px;bottom:0;width:2px;background:var(--ink);margin-left:-1px}
+.st-axis{position:relative;height:20px;margin:0 8px;font-size:11.5px;color:var(--muted)}
+.st-axis span{position:absolute;transform:translateX(-50%)}
+.st-count{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 6px}
+.st-pairs tr{cursor:default}
+.st-pairs tr.pass td{background:color-mix(in srgb,var(--series) 8%,transparent)}
+.st-pairs td.n{font-family:var(--mono);white-space:nowrap}
+.st-gate{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--rule);font-size:13.5px}
+.st-gate .ok{font-weight:700;color:var(--good)}
+.st-gate .no{font-weight:700;color:var(--bad)}
+.st-gate small{display:block;color:var(--muted);font-size:12px}
+.st-verdict{margin-top:10px;border-radius:8px;padding:10px 12px;font-weight:700;background:var(--wash)}
+.st-verdict small{display:block;font-weight:400;color:var(--ink-2);margin-top:3px;font-size:12.5px}
+@media (max-width:980px){.st-jobs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.st-jobs{grid-template-columns:1fr}.st-range{grid-template-columns:1fr 44px}.st-range .st-track{grid-column:1 / -1;grid-row:2}.st-count{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -316,7 +352,7 @@ footer p{margin:4px 0;max-width:110ch}
       <p class="lede">RAG works like a funnel. Job postings go in at the top and are cut into small pieces (chunks). Each piece gets a list of numbers that describes its meaning, so it lands on a shared "meaning space" next to similar pieces. That part is built once. Then, for every question, each piece is compared with the question and only the five closest go to the LLM (Gemma), which answers from them. Your resume goes through its own small funnel into the same space, so we can see which job pieces sit closest to yours. Click any part of the picture, or use the buttons below.</p>
       <p class="note" id="atsNoteTop" style="max-width:62ch;margin:8px 0 0">This example may not reflect how HR teams or ATS software actually screen resumes. We use resumes because they are close to our daily life, so you can see how RAG works on something familiar.</p>
       <div class="stepnow" id="stepNow"><div class="k">Step 1 of 5</div><div class="t">Chunk</div></div>
-      <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button></div>
+      <div class="stepnav"><button class="chip" id="prevStep">← Previous step</button><button class="chip" id="nextStep">Next step →</button><button class="chip" id="storeBtn">Questions from lecture: designing the store</button></div>
       <div class="modelcard" id="modelCard">
         <div><b>EmbeddingGemma</b> turns text into numbers <b>inside your browser</b>. The first time, it downloads about <b>200 MB</b>. After that your browser keeps it, so it loads fast. <span id="modelStatus">Not loaded yet.</span></div>
         <button class="btn" id="loadModel">Load model</button>
@@ -434,6 +470,7 @@ footer p{margin:4px 0;max-width:110ch}
       </details>
     </div>
   </div>
+  <p class="callout" style="margin:16px 0 0">Students asked what to embed, whether LLM answers can be stored, and how to handle time and place. <button class="btn ghost" id="storeBtn2" style="margin-left:6px;padding:4px 10px">See the answers with our data</button></p>
   <div class="panel-nav"><button class="btn ghost" data-go="2">← Back: embed</button><button class="btn" data-go="4">Next: check if it works →</button></div>
 </section>
 
@@ -499,6 +536,53 @@ footer p{margin:4px 0;max-width:110ch}
     </div>
   </div>
   <div class="panel-nav"><button class="btn ghost" data-go="4">← Back: evaluate</button><button class="btn ghost" data-go="2">See your resume on the big map →</button></div>
+</section>
+
+<!-- ============================== DESIGNING THE STORE ============================== -->
+<section class="panel" id="pStore">
+  <div class="step-head"><h2>Designing the store</h2><p>Three questions students asked in lecture, answered with our 424 postings. The numbers come from section 7 of the notebook, so this page calls no model.</p></div>
+  <div class="card">
+    <div class="label">One real record has four kinds of fields</div>
+    <div class="st-jobs" id="stRecord"></div>
+  </div>
+
+  <h3 class="st-q"><span>1</span>What should we embed?</h3>
+  <div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
+    <div class="card"><div class="label">Same 48 test questions, five choices (MRR with its 95% range)</div><div id="stChoices"></div></div>
+    <div class="callout" id="stChoicesNote" style="align-self:start"></div>
+  </div>
+
+  <h3 class="st-q"><span>2</span>Can we store a response the LLM wrote?</h3>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)">
+    <div class="side">
+      <div class="card" id="stStoreNote"></div>
+    </div>
+    <div class="card">
+      <div class="label">How close is close enough? 13 pairs of questions</div>
+      <label class="slider">Reuse a stored answer when similarity is at least<output id="stThOut">0.90</output><input type="range" id="stTh" min="0.75" max="1" step="0.01" value="0.90"></label>
+      <div class="st-count"><div class="stat"><div class="k">Good reuses</div><div class="v" id="stGood">–</div><div class="s">the old answer still works</div></div><div class="stat"><div class="k">Wrong reuses</div><div class="v" id="stBad">–</div><div class="s">the question needed a new answer</div></div></div>
+      <div class="st-strip" id="stStrip" role="img" aria-label="Similarity of each question pair. The table below lists the same values."></div>
+      <div class="st-axis" id="stAxis"></div>
+      <div class="legend" style="margin:10px 0"><span class="pill"><i style="background:var(--series);border-radius:50%"></i>Same meaning, old answer works</span><span class="pill"><i style="background:var(--lantern);border-radius:1px;transform:rotate(45deg)"></i>Needs a new answer</span></div>
+      <p class="note" id="stPick" style="min-height:2.6em;margin:4px 0">Click a mark, or read the full list below.</p>
+      <details><summary>All 13 pairs</summary><div class="scroll" style="max-height:300px"><table class="qtable st-pairs" id="stPairs"></table></div></details>
+      <p class="note" style="margin:10px 0 0">I wrote these pairs by hand to show the problem, so read them as an illustration. You can test your own pair with "Are these two close?" in step 2.</p>
+    </div>
+  </div>
+
+  <h3 class="st-q"><span>3</span>How do time and place fit in?</h3>
+  <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)">
+    <div class="side">
+      <div class="card" id="stStored"></div>
+      <div class="callout">Similarity can't check a place or a date, because these often don't appear in the question at all. They come from the user's request or session, and plain code compares them with fields in the record. The answer expires when its first source posting does.</div>
+    </div>
+    <div class="card">
+      <div class="label">A new request comes in. Pick one.</div>
+      <div class="chips" id="stChips"></div>
+      <div id="stGates" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div class="panel-nav"><button class="btn ghost" data-go="3">← Back: search and answer</button><button class="btn" data-go="4">Next: check if it works →</button></div>
 </section>
 </main>
 
@@ -1061,7 +1145,83 @@ async function matchNow(t, rc) {
 renderChunks();
 placeStack(1);
 requestAnimationFrame(drawFunnel);
-const fromHash = () => { const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
+/* ================================================================ DESIGNING THE STORE */
+/*STORE_DATA*/const STORE = {"choices":[{"name":"Chunk + job title + section name","vectors":2841,"hit":0.98,"mrr":0.93,"lo":0.86,"hi":0.98},{"name":"Same, without benefits and other boilerplate","vectors":2434,"hit":0.98,"mrr":0.93,"lo":0.86,"hi":0.98},{"name":"Chunk text only","vectors":2841,"hit":0.94,"mrr":0.88,"lo":0.79,"hi":0.95},{"name":"Whole posting, one vector each","vectors":424,"hit":0.94,"mrr":0.8,"lo":0.71,"hi":0.88},{"name":"Job title only, one vector each","vectors":424,"hit":0.77,"mrr":0.49,"lo":0.4,"hi":0.59}],"pairs":[{"sim":0.972,"same":true,"kind":"no","a":"What do data analyst jobs usually require?","b":"What are the usual requirements for a data analyst?"},{"sim":0.97,"same":true,"kind":"no","a":"What skills do I need for a marketing manager role?","b":"Which skills should a marketing manager have?"},{"sim":0.942,"same":true,"kind":"no","a":"Which jobs ask for Tableau or Power BI?","b":"What roles want Power BI or Tableau skills?"},{"sim":0.921,"same":false,"kind":"different condition","a":"Which remote jobs ask for Python?","b":"Which on-site jobs ask for Python?"},{"sim":0.888,"same":false,"kind":"different time","a":"Which analyst jobs were posted this week?","b":"Which analyst jobs were posted in 2023?"},{"sim":0.879,"same":false,"kind":"different time","a":"Which federal jobs are open today?","b":"Which federal jobs were open last year?"},{"sim":0.878,"same":false,"kind":"different condition","a":"Which entry-level jobs ask for SQL?","b":"Which senior jobs ask for SQL?"},{"sim":0.858,"same":false,"kind":"different condition","a":"Which jobs require a security clearance?","b":"Which jobs do not require a security clearance?"},{"sim":0.846,"same":false,"kind":"different place","a":"What is the pay for a nurse in Ohio?","b":"What is the pay for a nurse in New York?"},{"sim":0.836,"same":true,"kind":"no","a":"Which nursing jobs need an ICU background?","b":"Which RN roles want critical care experience?"},{"sim":0.828,"same":false,"kind":"different place","a":"Which data analyst jobs are in Pittsburgh?","b":"Which data analyst jobs are in Philadelphia?"},{"sim":0.803,"same":false,"kind":"different place","a":"Which data analyst jobs are in Texas?","b":"Which data analyst jobs are in California?"},{"sim":0.799,"same":true,"kind":"no","a":"Which jobs ask for Tableau or Power BI?","b":"Do any postings need dashboard tools like Tableau?"}],"key":{"question":0.95,"answer":0.78},"mix":{"generated":0.81,"real":0.55,"top":"AI-generated answer"},"stored":{"question":"Which analyst jobs ask for SQL?","state":"CA","created":"2023-11-15","valid_until":"2023-12-02","answer":"The Business Intelligence Analyst (Mid-Senior level) position asks for experience creating and maintaining business-critical data warehouse tables using SQL [4].","sources":4},"scenarios":[{"label":"Same meaning, same place","q":"What analyst roles want SQL?","state":"CA","today":"2023-11-15","sim":0.947,"sameModel":true},{"label":"Same words, a different place","q":"Which analyst jobs ask for SQL?","state":"TX","today":"2023-11-15","sim":1.0,"sameModel":true},{"label":"Same words, two months later","q":"Which analyst jobs ask for SQL?","state":"CA","today":"2024-01-15","sim":1.0,"sameModel":true},{"label":"Same words, a newer model or prompt","q":"Which analyst jobs ask for SQL?","state":"CA","today":"2023-11-15","sim":1.0,"sameModel":false},{"label":"Looser wording, same place","q":"Do analyst jobs require SQL skills?","state":"CA","today":"2023-11-15","sim":0.93,"sameModel":true},{"label":"A new condition in the words","q":"Which remote analyst jobs ask for SQL?","state":"CA","today":"2023-11-15","sim":0.941,"sameModel":true}],"record":{"title":"Business Intelligence Analyst","section":"requirements","text":"Requirements:\nBS degree in a quantitative discipline4+ years of experience working with data in a business setting, including data management, data ar","level":"Mid-Senior level","remote":false,"family":"Data & Analytics","state":"CA","listed":"2023-11-03","expires":"2023-12-02","job_id":"li-3754511985"}};/*END_STORE_DATA*/
+let storeReady = false, stScenario = 0;
+function showStore(scroll = true) {
+  $$(".panel").forEach(p => p.classList.toggle("on", p.id === "pStore"));
+  if (!storeReady) { storeReady = true; renderStore(); }
+  try { history.replaceState(null, "", "#store"); } catch {}
+  if (scroll) $("#pStore").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+$("#storeBtn").onclick = () => showStore();
+$("#storeBtn2").onclick = () => showStore();
+function renderStore() {
+  const S = STORE, r = S.record;
+  const field = (k, v) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`;
+  const job = (name, band, text, rows) => `<div class="st-job"><span class="tag" style="background:var(${band})">${name}</span><div class="note" style="margin-top:6px">${text}</div><dl>${rows}</dl></div>`;
+  $("#stRecord").innerHTML =
+    job("Embed", "--band-1", "Compared with the question.", field("title", r.title + " · " + r.section) + field("text", r.text + "…")) +
+    job("Filter", "--band-2", "Exact facts, checked with plain code.", field("level", r.level) + field("remote", r.remote ? "yes" : "no") + field("state", r.state) + field("listed", r.listed) + field("expires", r.expires)) +
+    job("Give back", "--band-3", "What the LLM or the user reads.", field("chunk text", "the full chunk") + field("job title", r.title) + field("family", r.family)) +
+    job("Trace", "--band-5", "Lets us check and update later.", field("job_id", r.job_id) + field("embedding model", "EmbeddingGemma, 256 numbers") + field("chunker", "section"));
+
+  $("#stChoices").innerHTML = S.choices.map(c => `<div class="st-range"><div>${esc(c.name)}<div class="note">${c.vectors.toLocaleString()} vectors · Hit@5 ${c.hit.toFixed(2)}</div></div><div class="st-track" role="img" aria-label="MRR ${c.mrr.toFixed(2)}, range ${c.lo.toFixed(2)} to ${c.hi.toFixed(2)}"><i style="left:${c.lo * 100}%;width:${(c.hi - c.lo) * 100}%"></i><b style="left:${c.mrr * 100}%"></b></div><div class="v">${c.mrr.toFixed(2)}</div></div>`).join("");
+  $("#stChoicesNote").innerHTML = `<b>Embed what people describe in words,</b> such as duties and skills, with enough context to stand alone. Keep exact facts (dates, places, salary) as fields to filter on.<br><br><b>Careful with the second row.</b> It has the same score only because our test questions never ask about benefits. Someone asking about health insurance would get nothing useful.`;
+
+  $("#stStoreNote").innerHTML = `<div class="label">Yes, as a semantic cache</div>
+    <p style="margin:0 0 10px;font-size:13.5px"><b>Embed the question.</b> A new question sits at ${S.key.question.toFixed(2)} against the old question and only ${S.key.answer.toFixed(2)} against the old answer, so we keep the answer beside the vector, unembedded.</p>
+    <p style="margin:0 0 10px;font-size:13.5px"><b>Keep it apart from the documents.</b> When we saved one wrong LLM answer among the postings, it ranked first for a later question (${S.mix.generated.toFixed(2)}, while the best real posting had ${S.mix.real.toFixed(2)}). Gemma would then cite its own mistake.</p>
+    <p style="margin:0;font-size:13.5px"><b>Move the slider.</b> No threshold keeps every good reuse and blocks every wrong one, which is why question 3 needs other checks.</p>`;
+
+  const lo = .75, hi = 1, x = v => (v - lo) / (hi - lo) * 100;
+  const lanes = [{}, {}];
+  $("#stStrip").innerHTML = `<div class="st-line" id="stLine"></div>` + S.pairs.map((p, i) => {
+    const row = p.same ? 0 : 1, used = lanes[row], bucket = Math.round(p.sim * 60);
+    const stack = used[bucket] = (used[bucket] || 0) + 1;
+    const y = (row === 0 ? 22 : 66) + (stack - 1) * 15 - (row === 0 ? 8 : 0);
+    return `<button type="button" class="st-dot ${p.same ? "same" : "diff"}" data-i="${i}" style="left:${x(p.sim)}%;top:${y}px" aria-label="${esc(p.a)} and ${esc(p.b)}: ${p.sim.toFixed(2)}"></button>`;
+  }).join("");
+  $("#stAxis").innerHTML = [.75, .8, .85, .9, .95, 1].map(v => `<span style="left:${x(v)}%">${v.toFixed(2)}</span>`).join("");
+  const pick = i => { const p = S.pairs[i]; $("#stPick").innerHTML = `<b>${p.sim.toFixed(2)}</b> · ${esc(p.a)} / ${esc(p.b)} · ${p.same ? "the old answer still works" : "needs a new answer (" + esc(p.kind) + ")"}`; };
+  $("#stStrip").onclick = e => { const b = e.target.closest(".st-dot"); if (b) pick(+b.dataset.i); };
+  $("#stStrip").onmouseover = e => { const b = e.target.closest(".st-dot"); if (b) pick(+b.dataset.i); };
+  $("#stPairs").innerHTML = `<thead><tr><th>Similarity</th><th>Question A</th><th>Question B</th><th>New answer?</th></tr></thead><tbody>` + S.pairs.map(p => `<tr><td class="n">${p.sim.toFixed(2)}</td><td>${esc(p.a)}</td><td>${esc(p.b)}</td><td>${p.same ? "no" : "yes, " + esc(p.kind)}</td></tr>`).join("") + `</tbody>`;
+  const th = () => +$("#stTh").value;
+  const drawTh = () => {
+    const t = th();
+    $("#stThOut").textContent = t.toFixed(2);
+    $("#stLine").style.left = x(t) + "%";
+    const same = S.pairs.filter(p => p.same), diff = S.pairs.filter(p => !p.same);
+    $("#stGood").textContent = `${same.filter(p => p.sim >= t).length} of ${same.length}`;
+    $("#stBad").textContent = `${diff.filter(p => p.sim >= t).length} of ${diff.length}`;
+    $$("#stPairs tbody tr").forEach((tr, i) => tr.classList.toggle("pass", S.pairs[i].sim >= t));
+    drawGates();
+  };
+  const st = S.stored;
+  $("#stStored").innerHTML = `<div class="label">The stored answer</div>
+    <p style="margin:0 0 6px;font-weight:700">${esc(st.question)}</p>
+    <p class="note" style="margin:0 0 8px">${esc(st.answer)}…</p>
+    <dl style="display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0;font-size:13px"><dt class="note">Place</dt><dd style="margin:0">${esc(st.state)}</dd><dt class="note">Created</dt><dd style="margin:0">${esc(st.created)}</dd><dt class="note">Valid until</dt><dd style="margin:0">${esc(st.valid_until)}</dd><dt class="note">Sources</dt><dd style="margin:0">${st.sources} postings</dd></dl>`;
+  $("#stChips").innerHTML = S.scenarios.map((s, i) => `<button class="chip${i === stScenario ? " on" : ""}" data-i="${i}">${esc(s.label)}</button>`).join("");
+  $("#stChips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; stScenario = +b.dataset.i; $$("#stChips .chip").forEach(c => c.classList.toggle("on", c === b)); drawGates(); };
+  function drawGates() {
+    const s = S.scenarios[stScenario], t = th();
+    const gates = [["Question close enough", s.sim >= t, `similarity ${s.sim.toFixed(2)}, threshold ${t.toFixed(2)}`],
+                   ["Same place", s.state === st.state, `user in ${s.state}, answer built for ${st.state}`],
+                   ["Still valid", s.today >= st.created && s.today < st.valid_until, `today ${s.today}, valid until ${st.valid_until}`],
+                   ["Same model and prompt", s.sameModel, s.sameModel ? "nothing changed" : "the model or prompt is newer than the answer"]];
+    const reuse = gates.every(g => g[1]), wrong = reuse && s.label.startsWith("A new condition");
+    const closed = s.today >= st.valid_until && s.state === st.state;
+    $("#stGates").innerHTML = `<p style="margin:0 0 8px;font-size:13.5px">"${esc(s.q)}" · user in ${esc(s.state)} · ${esc(s.today)}</p>` +
+      gates.map(g => `<div class="st-gate"><span class="${g[1] ? "ok" : "no"}">${g[1] ? "✓ Pass" : "✗ Fail"}</span><span>${g[0]}<small>${esc(g[2])}</small></span></div>`).join("") +
+      `<div class="st-verdict">${reuse ? "Reuse the stored answer (0 Gemma calls)" : "Search again and generate a new answer (1 Gemma call)"}${wrong ? `<small>All four checks pass, but this reuse would be wrong: the old answer covers all analyst jobs, and this person asked about remote ones. Conditions like "remote" and "entry level" should also become fields, or the question should skip the store.</small>` : ""}${closed ? `<small>In the notebook, no California postings are open on this date, so there is nothing to answer from.</small>` : ""}</div>`;
+  }
+  $("#stTh").oninput = drawTh;
+  drawTh();
+}
+
+const fromHash = () => { if (location.hash === "#store") { showStore(false); return; } const h = +(location.hash.match(/step(\d)/) || [])[1]; if (h >= 1 && h <= 5 && h !== current) go(h); };
 fromHash(); addEventListener("hashchange", fromHash);
 if (env.useBrowserCache) caches.open("transformers-cache").then(c => c.keys()).then(k => { if (k.some(r => r.url.includes("embeddinggemma"))) getModel().catch(() => {}); }).catch(() => {});
 </script>
