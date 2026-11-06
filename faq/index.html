@@ -7,7 +7,18 @@
   @media (prefers-color-scheme: dark) { body { background: #0d1117; } }
   .markdown-body { box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
   .back { font-size: 14px; margin: 0 0 20px; }
-</style></head>
+</style>
+<script>
+// anonymous visit count, only on the live site (the copy in the zip and local tests are not counted)
+if (location.hostname === "rzrizaldy.github.io") {
+  const gc = document.createElement("script");
+  gc.async = true;
+  gc.src = "https://gc.zgo.at/count.js";
+  gc.dataset.goatcounter = "https://lab02rag.goatcounter.com/count";
+  document.head.appendChild(gc);
+}
+</script>
+</head>
 <body><article class="markdown-body">
 <p class="back"><a href="../">← Back to the companion</a></p>
 <h1 id="lab-02-faq">Lab 02 FAQ</h1>
@@ -160,6 +171,8 @@
 <h2 id="your-resume">Your resume</h2>
 <h3 id="is-my-resume-uploaded-anywhere">Is my resume uploaded anywhere?</h3>
 <p>The companion app reads PDF and DOCX files and computes the embeddings inside your browser tab. The only downloads are the libraries and the model, and you can check this in DevTools under Network. In the notebook, the matching runs on your laptop or your Colab runtime and doesn't send the resume to Gemma.</p>
+<h3 id="does-the-companion-track-me">Does the companion track me?</h3>
+<p>It counts anonymous visits with GoatCounter, which doesn't use cookies, so I can see roughly how many people opened the page. Your resume is never part of this.</p>
 <h3 id="is-the-score-my-chance-of-getting-the-job">Is the score my chance of getting the job?</h3>
 <p>No. It measures how close the meaning of your words is to the posting's words. It can't see formatting, references, interviews or you as a person, and postings themselves can be biased. On 300 labeled resume and job pairs, "No Fit" pairs scored about the same as "Good Fit" pairs (both about 0.65).</p>
 <h3 id="should-i-add-the-weakest-link-words-to-my-resume">Should I add the weakest-link words to my resume?</h3>
@@ -204,4 +217,6 @@
 </tbody>
 </table>
 <p>The <a href="https://rzrizaldy.github.io/cmu_f26_genai_lab02_rag_companion/readme/">lab guide</a> has the full list.</p>
+<hr>
+<p><small>This page counts anonymous visits with GoatCounter, without cookies. Your resume is never part of it.</small></p>
 </article></body></html>

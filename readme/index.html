@@ -7,7 +7,18 @@
   @media (prefers-color-scheme: dark) { body { background: #0d1117; } }
   .markdown-body { box-sizing: border-box; max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
   .back { font-size: 14px; margin: 0 0 20px; }
-</style></head>
+</style>
+<script>
+// anonymous visit count, only on the live site (the copy in the zip and local tests are not counted)
+if (location.hostname === "rzrizaldy.github.io") {
+  const gc = document.createElement("script");
+  gc.async = true;
+  gc.src = "https://gc.zgo.at/count.js";
+  gc.dataset.goatcounter = "https://lab02rag.goatcounter.com/count";
+  document.head.appendChild(gc);
+}
+</script>
+</head>
 <body><article class="markdown-body">
 <p class="back"><a href="../">← Back to the companion</a></p>
 <h1 id="lab-02-rag-how-does-a-machine-read-your-resume">Lab 02 · RAG: <em>How does a machine read your resume?</em></h1>
@@ -265,4 +276,6 @@ pip install -r requirements.txt    # about 2-3 minutes the first time (PyTorch)
 </table>
 <h2 id="data-credits">Data credits</h2>
 <p>LinkedIn Job Postings 2023-24 by Arsh Koneru and Zoey Yu Zou (Kaggle, CC BY-SA 4.0), through the <code>xanderios/linkedin-job-postings</code> Hugging Face mirror · USAJOBS postings through <code>loyoladatamining/usajobs</code> (US government work) · resume and job fit labels from <code>cnamuangtoun/resume-job-description-fit</code> · sample resumes from the Kaggle Resume Dataset. The postings were cleaned and re-sectioned for teaching; this subset is shared under CC BY-SA 4.0.</p>
+<hr>
+<p><small>This page counts anonymous visits with GoatCounter, without cookies. Your resume is never part of it.</small></p>
 </article></body></html>
